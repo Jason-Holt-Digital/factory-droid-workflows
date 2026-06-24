@@ -27,3 +27,4 @@ jobs:
           factory_api_key: ${{ secrets.factory_api_key }}
           automatic_review: true
           automatic_security_review: true
+          allowed_bots: "*"
