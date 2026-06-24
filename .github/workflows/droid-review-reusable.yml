@@ -5,13 +5,7 @@ on:
     secrets:
       factory_api_key:
         required: true
-    inputs:
-      automatic_security_review:
-        type: boolean
-        default: true
-      review_depth:
-        type: string
-        default: deep
+  pull_request:
 
 jobs:
   droid-review:
@@ -32,5 +26,4 @@ jobs:
         with:
           factory_api_key: ${{ secrets.factory_api_key }}
           automatic_review: true
-          automatic_security_review: ${{ inputs.automatic_security_review }}
-          review_depth: ${{ inputs.review_depth }}
+          automatic_security_review: true
