@@ -1,0 +1,36 @@
+name: Droid Auto Review (Reusable)
+
+on:
+  workflow_call:
+    secrets:
+      factory_api_key:
+        required: true
+    inputs:
+      automatic_security_review:
+        type: boolean
+        default: true
+      review_depth:
+        type: string
+        default: deep
+
+jobs:
+  droid-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Run Droid Auto Review
+        uses: Factory-AI/droid-action@main
+        with:
+          factory_api_key: ${{ secrets.factory_api_key }}
+          automatic_review: true
+          automatic_security_review: ${{ inputs.automatic_security_review }}
+          review_depth: ${{ inputs.review_depth }}
