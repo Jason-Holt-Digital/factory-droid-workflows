@@ -6,6 +6,7 @@ on:
       factory_api_key:
         required: true
   pull_request:
+    types: [opened]
 
 jobs:
   droid-review:
