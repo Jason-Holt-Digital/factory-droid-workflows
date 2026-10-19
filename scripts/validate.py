@@ -59,13 +59,13 @@ def validate(config):
             "Triage must classify new issues without implementation or ready labels."
         )
     steward = config["ci_steward"]
-    for key, maximum in (
+    for key, bound in (
         ("max_retries", 1),
         ("max_fix_commits", 2),
         ("max_invocations", 10),
     ):
-        if type(steward[key]) is not int or not 0 <= steward[key] <= maximum:
-            errors.append(f"ci_steward.{key} must be between zero and {maximum}.")
+        if type(steward[key]) is not int or steward[key] != bound:
+            errors.append(f"ci_steward.{key} must be {bound}.")
     if steward["watch_ai_workflows"] or steward["watch_release_workflows"]:
         errors.append("CI Steward must not watch AI or release workflows.")
     names = [repo["name"] for repo in config["repositories"]]
@@ -86,6 +86,12 @@ def validate(config):
             errors.append("Source mapping refers to an unconfigured repository.")
     for repo in config["repositories"]:
         name = repo["name"]
+        boolean_fields = ["automerge", "deployment_audited"]
+        if repo["release"] == "tag-pubdev":
+            boolean_fields.append("human_gate_canary_verified")
+        for field in boolean_fields:
+            if type(repo.get(field)) is not bool:
+                errors.append(f"{name}: {field} must be a boolean.")
         if repo["state"] not in STATES:
             errors.append(f"{name}: invalid verification state.")
         if repo["kind"] not in KINDS:

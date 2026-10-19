@@ -10,7 +10,7 @@ Every shell command runs in a fresh process, so a variable set in one command is
 
 ## Setup
 
-1. Run `CONTROL_ROOT='<absolute path>' && cd "$CONTROL_ROOT" && git pull --ff-only`. If that fails, stop and record a configuration failure.
+1. Run `CONTROL_ROOT='<absolute path>' && cd "$CONTROL_ROOT" && test -z "$(git status --porcelain)" && test "$(git branch --show-current)" = main && git pull --ff-only origin main && test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"`. If that fails, stop and record a configuration failure.
 2. Read `$CONTROL_ROOT/config/jhd.json`. It is the policy. When this file and the config disagree, follow the config and report the disagreement.
 3. Repository paths in the config are relative to the parent directory of the control root, `"$(dirname "$CONTROL_ROOT")"`. All repositories belong to the `organization` in the config.
 4. Queue labels named in prompts (`ready`, `working`, `blocked`, `awaiting_release`, `canary`, `paused`) mean the label names in `queue_labels`, for example `automation:ready`.
