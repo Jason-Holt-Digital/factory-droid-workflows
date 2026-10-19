@@ -8,6 +8,7 @@ What the setup is built from and what has been proven. Dates are 2026-10-19 unle
 |---|---|---|
 | `Factory-AI/droid-action` | v10 | `ec767fcf5fac43b64e746cd42bb398b3b0b529ed` |
 | `actions/checkout` | v5 | `fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09` |
+| `actions/github-script` | v8 | `ed597411d8f924073f98dfc5c65a23a2325f34cd` |
 
 Workflows reference the commit, with the version in a comment.
 
@@ -24,10 +25,16 @@ The workflows use the official upstream `Factory-AI/droid-action` v10 at the pin
 
 ## Workflow coverage
 
-- Review with a security pass, and `@droid` mentions: all 11 repositories (22 workflow files).
+- Review with a security pass, and `@droid` mentions: all 13 repositories (26 workflow files).
 - CI Steward: six repositories with existing deterministic CI, watching only those workflows. The list is in `docs/OPERATIONS.md`.
-- Review runs on the latest head of a same-repository PR, cancels superseded runs, and skips a head that already completed review.
-- The workflows are written. They have not yet run against a live PR.
+- Review binds the PR, head, and base refs and SHAs, cancels superseded runs, and skips a matching completed review.
+- Opt-in jobs on the setup PRs are skipped. Hosted Factory execution remains unverified.
+
+## Added repositories
+
+- `jhd-astro`: 30 Vitest tests passed. Astro checked 94 files with zero errors, warnings, or hints. The production build completed with 177 pages. Existing npm audit findings remain: two high and two moderate; no dependency changes were made.
+- `ac-deck-builder`: 24 unit and widget tests passed in `prototypes/ac_deck_prototype` after dependency resolution and ignored localization generation, using Flutter 3.47.7 and Dart 3.13.5. Native-device QA remains `NOT_RUN`.
+- The website transfer preserved repository identity and `main` history. Cloudflare's saved connection targets the organization repository, with builds paused and the encrypted build secret verified after reload. The existing production version remained active and the homepage returned HTTP 200. No deployment was launched.
 
 ## QA pilot
 
@@ -53,13 +60,13 @@ The workflows use the official upstream `Factory-AI/droid-action` v10 at the pin
 ## Releases
 
 - Five Release Please setups are open as draft PRs: `MythicGME2e` #1948, `mythic_gme_apps` #126, `icloud_storage_plus` #49, `mythic-dice-parser` #7, and `jhd-jaspr` #1. Their 19 offline verification groups passed. Real credentials and publishing are not proven.
-- The `icloud_storage_plus` `pub.dev` environment requires a human reviewer. Its approval canary has not run.
+- The `icloud_storage_plus` `pub.dev` environment requires a human reviewer with admin bypass off. Its approval canary reached the human-approval wait with zero executed steps, then was cancelled without approval. This proves the approval gate, not package publication.
 - Tome Keeper's existing release setup is unchanged.
 - AutoWiki and extraction of the overlay are deferred and outside this rollout.
 - No real or test package publication has been launched.
 
 ## Not yet proven
 
-Linear JHD intake, Sentry writeback, Slack alerts, hosted Factory preview features, Release Please credential execution, the `pub.dev` approval canary, live runs of the new review, mention, and CI Steward workflows, CI Steward repair, native Flutter QA, and every native automation are not verified. Five local native automations are installed and paused. Their state is tracked in `Jason-Holt-Digital/jhd-skills` issue #1.
+Linear JHD intake, Sentry writeback, Slack alerts, hosted Factory preview features, Release Please credential execution, live runs of the new review, mention, and CI Steward workflows, CI Steward repair, native Flutter QA, and every native automation are not verified. Five local native automations are installed and paused. Their state is tracked in `Jason-Holt-Digital/jhd-skills` issue #1.
 
 The existing parser review action reached Factory on PR #8 but failed: weekly standard usage limit reached and Extra Usage balance empty. This is an observed service limit, not a credential-presence failure.

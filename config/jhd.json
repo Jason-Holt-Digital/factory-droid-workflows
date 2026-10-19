@@ -73,6 +73,8 @@
     {"name": "mythic-dice-parser", "path": "mythic-dice-parser", "kind": "dart-library", "release": "package", "state": "prepared", "automerge": false, "native_qa_required": false, "deployment_audited": false},
     {"name": "icloud_storage_plus", "path": "icloud_storage_plus", "kind": "flutter-plugin", "release": "tag-pubdev", "state": "prepared", "automerge": false, "native_qa_required": true, "deployment_audited": false, "publish_environment": "pub.dev", "human_gate_configured": true, "human_gate_canary_verified": true},
     {"name": "jhd-jaspr", "path": "websites/jhd-jaspr", "kind": "dart-web", "release": "notes-and-site", "state": "prepared", "automerge": false, "native_qa_required": false, "deployment_audited": false},
+    {"name": "jhd-astro", "path": "websites/jhd-astro", "kind": "typescript-web", "release": "site", "state": "prepared", "automerge": false, "native_qa_required": false, "deployment_audited": false},
+    {"name": "ac-deck-builder", "path": "ac-deck-builder", "kind": "flutter", "release": "none", "state": "prepared", "automerge": false, "native_qa_required": true, "deployment_audited": false},
     {"name": "broken-empires-creator", "path": "broken-empires-creator", "kind": "typescript-web", "release": "site", "state": "prepared", "automerge": false, "native_qa_required": false, "deployment_audited": false},
     {"name": "jhd-skills", "path": "jhd-skills", "kind": "skills", "release": "none", "state": "prepared", "automerge": false, "native_qa_required": false, "deployment_audited": false},
     {"name": "agent-skills", "path": "agent-skills", "kind": "skills", "release": "none", "state": "prepared", "automerge": false, "native_qa_required": false, "deployment_audited": false},

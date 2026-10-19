@@ -34,7 +34,7 @@ The five local automations also appear in the cloud list as synced registrations
 
 ## Workflows
 
-Each of the 11 repositories gets two workflows: native review with a security pass (`factory-review.yml`) and native `@droid` commands on pull requests (`factory-mentions.yml`). A command runs only on an open pull request from a branch in the same repository, and only when a person with write access to the repository wrote the comment or review. A `@droid` comment on an issue starts nothing; issue implementation goes through the local worker queue. The Factory bot cannot author a command; it remains allowed only for automatic review and CI Steward push events. Six repositories also get CI Steward (`factory-ci-steward.yml`), which watches only their existing deterministic build and test workflows:
+Each of the 13 repositories gets two workflows: native review with a security pass (`factory-review.yml`) and native `@droid` commands on pull requests (`factory-mentions.yml`). A command runs only on an open pull request from a branch in the same repository, and only when a person with write access to the repository wrote the comment or review. A `@droid` comment on an issue starts nothing; issue implementation goes through the local worker queue. The Factory bot cannot author a command; it remains allowed only for automatic review and CI Steward push events. Six repositories also get CI Steward (`factory-ci-steward.yml`), which watches only their existing deterministic build and test workflows:
 
 | Repository | Watched workflows |
 |---|---|
@@ -45,7 +45,17 @@ Each of the 11 repositories gets two workflows: native review with a security pa
 | `broken-empires-creator` | CI |
 | `factory-droid-workflows` | Automation configuration |
 
-The other five repositories have no deterministic CI to watch, so they get no CI Steward workflow. Existing product CI and release workflows are unchanged.
+The other seven repositories have no deterministic GitHub CI to watch, so they get no CI Steward workflow. Existing product CI and release workflows are unchanged.
+
+The live `jasonholtdigital.com` website is `jhd-astro`, not `jhd-jaspr`; both repositories remain covered. Astro uses Node 22 and the local checks `npm test`, `npm run check`, and `npm run build`. Its Cloudflare Worker is `jhd-astro-web`.
+
+The website repository was transferred from `kingdomseed` with its repository ID and `main` history preserved. Cloudflare is reconnected to `Jason-Holt-Digital/jhd-astro` on `main`, with builds paused. Its encrypted `TURNSTILE_SECRET_KEY` build entry was restored and verified after a reload. The existing production deployment remains active; this rollout deployed nothing.
+
+Keep builds paused until a person approves resuming them. Once resumed, pushes to `main` use the existing `npm run build` and `npx wrangler deploy` commands. Never enable automatic merges while that path can deploy production without a separate human gate.
+
+The Flutter app in `ac-deck-builder` is under `prototypes/ac_deck_prototype`, not the repository root. Its workflow files under that prototype directory are not root GitHub Actions workflows. Before its documented tests, run `flutter pub get` and `flutter gen-l10n` in that directory to prepare ignored dependencies and translations. Native QA and deployment verification remain required before activation.
+
+Neither addition changes Release Please or enables any Factory variable, schedule, or automatic merge.
 
 ## Activation requirements
 These must be true before the matching piece is switched on.

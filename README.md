@@ -1,6 +1,6 @@
 # factory-droid-workflows
 
-Policy, documentation, and prompt templates for Jason Holt Digital (JHD) software-delivery automation across 11 repositories. It also holds the reusable Droid review workflow.
+Policy, documentation, and prompt templates for Jason Holt Digital (JHD) software-delivery automation across 13 repositories. It also holds the reusable Droid review workflow.
 
 This repository is public. It holds policy, credential names, and procedures only. Secret values, private issue text, licensed source content, logs, traces, and recordings stay out of it.
 
@@ -34,8 +34,9 @@ Live status is in the issue titled `JHD automation status` in the private `Jason
 ```sh
 uv run python scripts/validate.py
 uv run python -m unittest discover -s tests -v
+node --test tests/test_workflow_authorization.cjs
 uvx ruff check scripts tests
 uvx ty check scripts tests
 ```
 
-CI runs the first two in `.github/workflows/validate.yml`.
+CI runs the validator, Python tests, and Node tests in `.github/workflows/validate.yml`.
