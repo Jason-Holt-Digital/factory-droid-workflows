@@ -4,7 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-COMMON = Path(__file__).resolve().parents[1] / "automations/COMMON.md"
+ROOT = Path(__file__).resolve().parents[1]
+COMMON = ROOT / "automations/COMMON.md"
 
 
 class ControlCheckoutTest(unittest.TestCase):
@@ -15,13 +16,14 @@ class ControlCheckoutTest(unittest.TestCase):
         self.origin = self.root / "origin.git"
         self.seed = self.root / "seed"
         self.checkout = self.root / "control checkout"
-        self.git(self.root, "init", "--bare", str(self.origin))
-        self.git(self.root, "init", "-b", "main", str(self.seed))
-        (self.seed / "policy.txt").write_text("initial\n")
-        self.git(self.seed, "add", "policy.txt")
-        self.git(self.seed, "commit", "-m", "Initial fixture")
-        self.git(self.seed, "remote", "add", "origin", str(self.origin))
-        self.git(self.seed, "push", "-u", "origin", "main")
+        self.git(self.root, "clone", "--bare", str(ROOT), str(self.origin))
+        self.tip = self.git(self.origin, "rev-parse", "HEAD")
+        self.base = self.git(self.origin, "rev-parse", "HEAD^")
+        self.git(self.origin, "update-ref", "refs/heads/main", self.base)
+        self.git(self.origin, "update-ref", "refs/heads/fixture-tip", self.tip)
+        self.git(
+            self.root, "clone", "--branch", "main", str(self.origin), str(self.seed)
+        )
         self.git(
             self.root, "clone", "--branch", "main", str(self.origin), str(self.checkout)
         )
@@ -62,7 +64,7 @@ class ControlCheckoutTest(unittest.TestCase):
         self.assertEqual(before, self.checkout_state())
 
     def test_clean_main_fast_forwards_from_origin(self):
-        self.git(self.seed, "commit", "--allow-empty", "-m", "Advance origin")
+        self.git(self.seed, "merge", "--ff-only", self.tip)
         self.git(self.seed, "push", "origin", "main")
         expected = self.git(self.seed, "rev-parse", "HEAD")
         self.assertNotEqual(expected, self.git(self.checkout, "rev-parse", "HEAD"))
@@ -77,12 +79,12 @@ class ControlCheckoutTest(unittest.TestCase):
         self.assert_setup_rejected()
 
     def test_rejects_modified_files(self):
-        (self.checkout / "policy.txt").write_text("local\n")
+        (self.checkout / "README.md").write_text("local\n")
         self.assert_setup_rejected()
 
     def test_rejects_staged_files(self):
-        (self.checkout / "policy.txt").write_text("local\n")
-        self.git(self.checkout, "add", "policy.txt")
+        (self.checkout / "README.md").write_text("local\n")
+        self.git(self.checkout, "add", "README.md")
         self.assert_setup_rejected()
 
     def test_rejects_non_main_branch(self):
@@ -94,7 +96,7 @@ class ControlCheckoutTest(unittest.TestCase):
         self.assert_setup_rejected()
 
     def test_rejects_main_ahead_of_origin(self):
-        self.git(self.checkout, "commit", "--allow-empty", "-m", "Local only")
+        self.git(self.checkout, "merge", "--ff-only", self.tip)
         self.assert_setup_rejected()
 
 
