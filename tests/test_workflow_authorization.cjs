@@ -11,10 +11,9 @@ const workflows = Object.fromEntries(['mentions', 'review', 'ci-steward'].map(ki
   kind, readFileSync(join(__dirname, '../.github/workflows', `factory-${kind}.yml`), 'utf8'),
 ]));
 
-function authorizationScript(kind) {
-  const authorize = workflows[kind].split('\n  authorize:\n')[1].split(/\n  \w+:\n/)[0];
-  const match = authorize.match(/^          script: \|\n((?:^            .*\n|^\n)+)/m);
-  assert.ok(match, `Missing authorization script in ${kind}`);
+function eligibilityScript(kind, job = 'authorize') {
+  const match = jobBlock(kind, job).match(/^          script: \|\n((?:^            .*\n|^\n)+)/m);
+  assert.ok(match, `Missing eligibility script in ${kind}/${job}`);
   return match[1].replace(/^            /gm, '');
 }
 
@@ -106,7 +105,7 @@ async function authorize(kind, options = {}) {
     setFailed: message => result.failures.push(message),
     info: message => result.infos.push(message),
   };
-  await vm.runInNewContext(`(async () => {\n${authorizationScript(kind)}\n})()`, {
+  await vm.runInNewContext(`(async () => {\n${eligibilityScript(kind, options.job)}\n})()`, {
     github, context, core,
     process: { env: { TRIGGERING_ACTOR: options.triggeringActor || context.actor } },
   });
@@ -117,12 +116,12 @@ function denied(result) {
   assert.equal(result.outputs.eligible, undefined);
 }
 
-function evaluate(expression, context, vars = {}) {
+function evaluate(expression, context, vars = {}, scope = {}) {
   const event = {
     changes: {}, comment: { user: {} }, review: { user: {} },
     ...context.payload,
   };
-  return vm.runInNewContext(expression, {
+  return vm.runInNewContext(expression.replaceAll('pull_requests[0].number', 'pull_requests?.[0]?.number'), {
     github: {
       event, actor: context.actor, event_name: context.eventName,
       repository: 'jhd/project', run_id: context.runId,
@@ -134,6 +133,7 @@ function evaluate(expression, context, vars = {}) {
     fromJSON: JSON.parse,
     contains: (value, item) => value?.includes(item) || false,
     format: (value, ...args) => value.replace(/\{(\d+)\}/g, (_, index) => args[index]),
+    ...scope,
   });
 }
 
@@ -151,7 +151,7 @@ for (const kind of ['mentions', 'review', 'ci-steward']) {
     assert.equal(result.outputs.eligible, 'true');
     assert.deepEqual(result.failures, []);
     assert.deepEqual(result.permissions, ['writer', 'admin']);
-    assert.deepEqual(result.pulls, [42]);
+    assert.deepEqual(result.pulls, kind === 'review' ? [42] : []);
   });
 
   for (const permission of ['read', 'triage', 'none']) {
@@ -167,7 +167,7 @@ for (const kind of ['mentions', 'review', 'ci-steward']) {
     }
   }
 
-  for (const state of ['fork', 'closed', ...(kind === 'mentions' ? [] : ['draft', 'stale'])]) {
+  for (const state of kind === 'review' ? ['fork', 'closed', 'draft', 'stale'] : []) {
     test(`${kind}: rejects ${state} PR`, async () => {
       const pr = pullRequest();
       if (state === 'fork') pr.head.repo.full_name = 'outside/project';
@@ -199,6 +199,10 @@ for (const eventName of ['issue_comment', 'pull_request_review_comment', 'pull_r
     }
     assert.equal(jobCondition('mentions', context), true);
     assert.equal((await authorize('mentions', { context })).outputs.eligible, 'true');
+    const queued = await authorize('mentions', { context, job: 'mentions' });
+    assert.equal(queued.outputs.eligible, 'true');
+    assert.deepEqual(queued.pulls, [42]);
+    assertMentionExecution(context, queued, true);
   });
 
   test(`mentions: rejects Factory bot output on ${eventName}`, async () => {
@@ -216,6 +220,38 @@ for (const eventName of ['issue_comment', 'pull_request_review_comment', 'pull_r
     denied(result);
     assert.match(result.failures[0], /human/);
     assert.deepEqual(result.permissions, []);
+  });
+}
+
+function assertMentionExecution(context, result, expected) {
+  const steps = jobSteps('mentions', 'mentions');
+  assert.match(steps[0], /uses: actions\/github-script@/);
+  assert.ok(steps.some(step => step.includes('uses: Factory-AI/droid-action@')));
+  for (const step of steps.slice(1)) {
+    const condition = step.match(/^        if: (.*)$/m);
+    const runs = condition ? Boolean(evaluate(condition[1], context, {}, {
+      steps: { check: { outputs: result.outputs } },
+    })) : true;
+    assert.equal(runs, expected, step.split('\n')[0]);
+  }
+}
+
+for (const state of ['closed', 'fork']) {
+  test(`mentions: suppresses execution when the PR becomes ${state} while queued`, async () => {
+    const context = eventContext('mentions');
+    const pr = pullRequest();
+    const authorized = await authorize('mentions', { context, pr });
+    assert.equal(authorized.outputs.eligible, 'true');
+    assert.deepEqual(authorized.pulls, []);
+    if (state === 'closed') pr.state = 'closed';
+    if (state === 'fork') pr.head.repo.full_name = 'outside/project';
+    const queued = await authorize('mentions', { context, pr, job: 'mentions' });
+    denied(queued);
+    assert.deepEqual(queued.failures, []);
+    assert.deepEqual(queued.permissions, []);
+    assert.deepEqual(queued.pulls, [42]);
+    assert.match(queued.infos[0], /fork or closed PRs/);
+    assertMentionExecution(context, queued, false);
   });
 }
 
@@ -313,13 +349,30 @@ test('review: skips current run and continues past unrelated candidates', async 
   assert.deepEqual(result.jobs, [99]);
 });
 
-for (const part of ['ref', 'sha']) {
-  test(`review: rejects superseded base ${part}`, async () => {
-    const pr = pullRequest();
-    pr.base[part] = 'different-base';
-    denied(await authorize('review', { pr }));
-  });
-}
+test('review: rejects a superseded base ref', async () => {
+  const pr = pullRequest();
+  pr.base.ref = 'different-base';
+  denied(await authorize('review', { pr }));
+});
+
+test('review: base SHA drift remains eligible and deduplicates against the live base', async () => {
+  const pr = pullRequest();
+  pr.base.sha = 'new-base';
+  const oldRun = reviewRun();
+  const liveRun = reviewRun(98);
+  liveRun.pull_requests[0].base.sha = pr.base.sha;
+  const jobs = {
+    99: [{ name: 'Advisory review and security', conclusion: 'success' }],
+    98: [{ name: 'Advisory review and security', conclusion: 'success' }],
+  };
+  const eligible = await authorize('review', { pr, runs: [oldRun], jobs });
+  assert.equal(eligible.outputs.eligible, 'true');
+  assert.deepEqual(eligible.jobs, []);
+  const completed = await authorize('review', { pr, runs: [oldRun, liveRun], jobs });
+  denied(completed);
+  assert.deepEqual(completed.jobs, [98]);
+  assert.match(completed.infos[0], /already completed/);
+});
 
 function reviewGroup(context) {
   const match = workflows.review.match(/^  group: (.*)\n/m);
@@ -387,19 +440,50 @@ test('ci-steward: checks original workflow actor and rerunner permissions', asyn
   }
 });
 
-test('ci-steward: rejects a superseded branch', async () => {
-  const pr = pullRequest();
-  pr.head.ref = 'other-branch';
-  denied(await authorize('ci-steward', { pr }));
-});
+for (const association of ['present', 'empty', 'missing']) {
+  test(`ci-steward: hands ${association} PR associations to native Steward`, async () => {
+    const context = eventContext('ci-steward');
+    if (association === 'empty') context.payload.workflow_run.pull_requests = [];
+    if (association === 'missing') delete context.payload.workflow_run.pull_requests;
+    assert.equal(jobCondition('ci-steward', context), true);
+    const result = await authorize('ci-steward', { context });
+    assert.deepEqual(result.outputs, { eligible: 'true' });
+    assert.deepEqual(result.pulls, []);
+    assert.deepEqual(result.failures, []);
+    for (const job of ['authorize', 'steward']) {
+      const group = jobBlock('ci-steward', job).match(/^      group: (.*)\n/m)[1];
+      const actual = group.replace(/\$\{\{(.*?)\}\}/g, (_, expression) => evaluate(expression, context));
+      const prefix = job === 'authorize' ? 'factory-steward-' : 'factory-ci-steward-';
+      assert.equal(actual, prefix + (association === 'present' ? '42' : 'feature'));
+    }
+  });
+}
 
-test('ci-steward: emits only the authorized head and refuses unaudited config', async () => {
-  const result = await authorize('ci-steward');
-  assert.deepEqual(result.outputs, { head_ref: 'feature', head_sha: 'head-sha', eligible: 'true' });
+test('ci-steward: refuses unaudited config and propagates API failures', async () => {
   const configured = await authorize('ci-steward', { configPresent: true });
   denied(configured);
   assert.match(configured.failures[0], /Audit .github\/droid-ci.yml/);
   await assert.rejects(authorize('ci-steward', { configError: 403 }), { status: 403 });
+});
+
+test('ci-steward: only hands same-repository failed PR workflows to native Steward', () => {
+  for (const conclusion of ['failure', 'timed_out', 'success', 'cancelled', 'skipped']) {
+    const context = eventContext('ci-steward');
+    context.payload.workflow_run.conclusion = conclusion;
+    assert.equal(jobCondition('ci-steward', context), ['failure', 'timed_out'].includes(conclusion));
+  }
+  const context = eventContext('ci-steward');
+  context.payload.workflow_run.event = 'push';
+  assert.equal(jobCondition('ci-steward', context), false);
+  context.payload.workflow_run.event = 'pull_request';
+  context.payload.workflow_run.head_repository.full_name = 'outside/project';
+  assert.equal(jobCondition('ci-steward', context), false);
+});
+
+test('ci-steward: checks out the event branch and leaves head validation to native Steward', () => {
+  const job = jobBlock('ci-steward', 'steward');
+  assert.match(job, /ref: \$\{\{ github.event.workflow_run.head_branch \}\}/);
+  assert.doesNotMatch(workflows['ci-steward'], /head_ref|EXPECTED_HEAD|needs.authorize.outputs.head_sha/);
 });
 
 function jobBlock(kind, job) {
@@ -408,9 +492,13 @@ function jobBlock(kind, job) {
   return block.split(/\n  \w[\w-]*:\n/)[0];
 }
 
-function gitHelperStep(kind, job) {
-  const steps = jobBlock(kind, job).split('\n    steps:\n')[1].split(/\n(?=      - )/)
+function jobSteps(kind, job) {
+  return jobBlock(kind, job).split('\n    steps:\n')[1].split(/\n(?=      - )/)
     .map(step => step.replace(/^      #.*\n/gm, '').replace(/\n      #.*$/gm, ''));
+}
+
+function gitHelperStep(kind, job) {
+  const steps = jobSteps(kind, job);
   const action = steps.findIndex(step => step.includes('uses: Factory-AI/droid-action@'));
   assert.ok(action > 0, `Missing native action in ${kind}/${job}`);
   assert.match(steps[action], /droid-action@ec767fcf5fac43b64e746cd42bb398b3b0b529ed /);

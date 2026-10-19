@@ -69,6 +69,29 @@ class PolicyValidationTest(unittest.TestCase):
         self.assertTrue(any("AI or release" in error for error in errors))
         self.assertTrue(any("max_fix_commits" in error for error in errors))
 
+    def test_steward_requires_the_fixed_workflow_integer_bounds(self):
+        for key, bound in (
+            ("max_retries", 1),
+            ("max_fix_commits", 2),
+            ("max_invocations", 10),
+        ):
+            for value in (
+                0,
+                bound - 1,
+                bound + 1,
+                True,
+                False,
+                float(bound),
+                str(bound),
+            ):
+                with self.subTest(key=key, value=value):
+                    self.config["ci_steward"][key] = value
+                    self.assertTrue(
+                        any(f"ci_steward.{key}" in e for e in validate(self.config))
+                    )
+            self.config["ci_steward"][key] = bound
+        self.assertEqual([], validate(self.config))
+
     def test_bot_wildcard_is_not_trusted(self):
         self.config["trusted_bots"] = ["*"]
         self.assertTrue(any("explicitly named" in e for e in validate(self.config)))
@@ -84,6 +107,40 @@ class PolicyValidationTest(unittest.TestCase):
         repo.update(automerge=True, deployment_audited=True, state="verified")
         repo["human_gate_canary_verified"] = False
         self.assertTrue(any("publisher approval" in e for e in validate(self.config)))
+        repo["human_gate_canary_verified"] = True
+        self.assertEqual([], validate(self.config))
+
+    def test_merge_gate_fields_require_booleans(self):
+        repo = self.config["repositories"][0]
+        repo.update(state="verified", automerge=True, deployment_audited=True)
+        for field in ("automerge", "deployment_audited"):
+            for value in ("false", "true", 0, 1, None, [], {}):
+                with self.subTest(field=field, value=value):
+                    repo[field] = value
+                    self.assertIn(
+                        f"{repo['name']}: {field} must be a boolean.",
+                        validate(self.config),
+                    )
+            repo[field] = True
+        self.assertEqual([], validate(self.config))
+
+    def test_publisher_approval_requires_a_boolean(self):
+        repo = next(
+            r for r in self.config["repositories"] if r["release"] == "tag-pubdev"
+        )
+        repo.update(state="verified", automerge=True, deployment_audited=True)
+        for value in ("false", "true", 0, 1, None, [], {}):
+            with self.subTest(value=value):
+                repo["human_gate_canary_verified"] = value
+                self.assertIn(
+                    f"{repo['name']}: human_gate_canary_verified must be a boolean.",
+                    validate(self.config),
+                )
+        del repo["human_gate_canary_verified"]
+        self.assertIn(
+            f"{repo['name']}: human_gate_canary_verified must be a boolean.",
+            validate(self.config),
+        )
         repo["human_gate_canary_verified"] = True
         self.assertEqual([], validate(self.config))
 
