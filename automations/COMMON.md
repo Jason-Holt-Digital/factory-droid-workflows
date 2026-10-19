@@ -2,11 +2,17 @@
 
 These rules apply to every JHD automation run. The automation's own prompt adds its task.
 
+## Control root
+
+`CONTROL_ROOT` is the absolute path of the repository that contains this file: the directory two levels above the `automations/COMMON.md` path your automation prompt told you to read. Take it from that absolute path. Do not guess it, and do not use a path written anywhere else.
+
+Every shell command runs in a fresh process, so a variable set in one command is gone in the next. Start every shell command that uses the control root with `CONTROL_ROOT='<absolute path>' && `. In this file, `$CONTROL_ROOT` means that bound value. When you read or write a file with a file tool instead of the shell, use the absolute path itself.
+
 ## Setup
 
-1. `cd {{CONTROL_ROOT}}` and run `git pull --ff-only`. If that fails, stop and record a configuration failure.
-2. Read `{{CONTROL_ROOT}}/config/jhd.json`. It is the policy. When this file and the config disagree, follow the config and report the disagreement.
-3. Repository paths in the config are relative to the parent of `{{CONTROL_ROOT}}`. All repositories belong to the `organization` in the config.
+1. Run `CONTROL_ROOT='<absolute path>' && cd "$CONTROL_ROOT" && git pull --ff-only`. If that fails, stop and record a configuration failure.
+2. Read `$CONTROL_ROOT/config/jhd.json`. It is the policy. When this file and the config disagree, follow the config and report the disagreement.
+3. Repository paths in the config are relative to the parent directory of the control root, `"$(dirname "$CONTROL_ROOT")"`. All repositories belong to the `organization` in the config.
 4. Queue labels named in prompts (`ready`, `working`, `blocked`, `awaiting_release`, `canary`, `paused`) mean the label names in `queue_labels`, for example `automation:ready`.
 5. Any nested `droid exec` is a new session with an explicit `--auto` level. Never resume an earlier session with `-s`.
 
@@ -40,7 +46,7 @@ These rules apply to every JHD automation run. The automation's own prompt adds 
 
 ## Run record
 
-End every run by writing `{{CONTROL_ROOT}}/local-evidence/runs/<automation>/<UTC timestamp>.md` with:
+End every run by writing `$CONTROL_ROOT/local-evidence/runs/<automation>/<UTC timestamp>.md` with:
 
 - what was checked and what changed, with links
 - each failure, with the failing command and the relevant error line (no secrets)

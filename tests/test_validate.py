@@ -42,7 +42,10 @@ class PolicyValidationTest(unittest.TestCase):
             r for r in self.config["repositories"] if r["release"] == "tag-pubdev"
         )
         repo.update(automerge=True, deployment_audited=True, state="verified")
+        repo["human_gate_canary_verified"] = False
         self.assertTrue(any("publisher approval" in e for e in validate(self.config)))
+        repo["human_gate_canary_verified"] = True
+        self.assertEqual([], validate(self.config))
 
     def test_duplicate_and_escaped_paths_are_invalid(self):
         self.config["repositories"][1]["name"] = self.config["repositories"][0]["name"]

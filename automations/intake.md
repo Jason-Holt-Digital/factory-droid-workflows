@@ -17,19 +17,19 @@ Goal, every hour: keep source items and their GitHub execution work in step, and
 Run this every hour, even when no source item changed.
 
 1. Find every open GitHub issue with a `Source:` line, and every issue closed since the last intake run.
-2. Work out each issue's stage from GitHub:
-   - `open`: no PR yet
-   - `in review`: a linked PR is open
-   - `blocked`: labeled `blocked` or `paused`
-   - `merged`: the linked PR is merged
-   - `released`: the merge commit is in a published release. Check with `gh release list` and `git tag --contains <merge commit>` in the repository. Do not assume a release from a merge.
+2. Work out each issue's stage from GitHub. Check the stages in this order and use the first one that matches:
+   1. `released`: the linked PR is merged and its merge commit is in a published release. Check with `gh release list` and `git tag --contains <merge commit>` in the repository. Do not assume a release from a merge.
+   2. `merged`: the linked PR is merged, and the merge commit is not yet in a published release.
+   3. `blocked`: labeled `blocked` or `paused`.
+   4. `in review`: a linked PR is open.
+   5. `open`: none of the above.
 3. Update labels:
-   - After `merged` or `blocked`, remove `working`.
-   - After `merged`, add `awaiting_release` when the repository's `release` is not `none` and the stage is not `released`. Remove `awaiting_release` once `released`.
+   - At `released`, `merged`, or `blocked`, remove `working`.
+   - At `merged`, add `awaiting_release` when the repository's `release` is not `none`. At `released`, remove `awaiting_release`.
 4. Update the source only when the stage changed since the last update:
    - Linear: edit one bot-owned progress comment (create it the first time) with the stage and the issue and PR links. Do not post a new comment for each update.
    - Sentry: write a bot-owned GitHub progress comment containing the new stage and PR or release links, and verify that the native integration syncs it back. Do not post the same stage twice. Do not resolve the Sentry issue. Resolution happens only through Sentry's release-aware resolution after the fix is in a release.
-5. If the source item was cancelled or closed by a person, apply the cancellation rule in COMMON.md. Never reopen it.
+5. If a person cancelled or closed the source item, apply the cancellation rule in COMMON.md at every stage: add `paused` even when the stage is `merged` or `released`. Sentry's own release-aware resolution after a release is not a cancellation. Never reopen the source item.
 
 ## Part 2: new and changed source items
 
