@@ -1,5 +1,8 @@
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
+const { spawnSync } = require('node:child_process');
+const { randomBytes } = require('node:crypto');
+const { existsSync, mkdtempSync, readFileSync, rmSync } = require('node:fs');
+const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { test } = require('node:test');
 const vm = require('node:vm');
@@ -398,3 +401,69 @@ test('ci-steward: emits only the authorized head and refuses unaudited config', 
   assert.match(configured.failures[0], /Audit .github\/droid-ci.yml/);
   await assert.rejects(authorize('ci-steward', { configError: 403 }), { status: 403 });
 });
+
+function jobBlock(kind, job) {
+  const block = workflows[kind].split(`\n  ${job}:\n`)[1];
+  assert.ok(block, `Missing ${job} job in ${kind}`);
+  return block.split(/\n  \w[\w-]*:\n/)[0];
+}
+
+function gitHelperStep(kind, job) {
+  const steps = jobBlock(kind, job).split('\n    steps:\n')[1].split(/\n(?=      - )/)
+    .map(step => step.replace(/^      #.*\n/gm, '').replace(/\n      #.*$/gm, ''));
+  const action = steps.findIndex(step => step.includes('uses: Factory-AI/droid-action@'));
+  assert.ok(action > 0, `Missing native action in ${kind}/${job}`);
+  assert.match(steps[action], /droid-action@ec767fcf5fac43b64e746cd42bb398b3b0b529ed /);
+  assert.doesNotMatch(steps[action], /github_token|GITHUB_TOKEN|GH_TOKEN/);
+  const helper = steps[action - 1].trim();
+  assert.doesNotMatch(helper, /^\s+env:/m);
+  const command = helper.match(/^\s+run: (.*)$/m);
+  assert.ok(command, `Missing Git helper command in ${kind}/${job}`);
+  return command[1];
+}
+
+function isolatedEnv(root, token = {}) {
+  return {
+    PATH: process.env.PATH, HOME: root,
+    XDG_CONFIG_HOME: join(root, 'config'), XDG_CACHE_HOME: join(root, 'cache'),
+    XDG_DATA_HOME: join(root, 'data'), XDG_STATE_HOME: join(root, 'state'),
+    GH_CONFIG_DIR: join(root, 'gh'), GIT_CONFIG_GLOBAL: join(root, 'gitconfig'),
+    GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_COUNT: '0', GIT_TERMINAL_PROMPT: '0',
+    GH_PROMPT_DISABLED: '1', GH_NO_UPDATE_NOTIFIER: '1',
+    ...token,
+  };
+}
+
+function run(command, args, env, input) {
+  return spawnSync(command, args, { env, input, encoding: 'utf8', timeout: 20000 });
+}
+
+function credentialPassword(env) {
+  const result = run('git', ['credential', 'fill'], env, 'protocol=https\nhost=github.com\n\n');
+  return result.status === 0 ? result.stdout.match(/^password=(.*)$/m)?.[1] : undefined;
+}
+
+for (const [kind, job] of [['mentions', 'mentions'], ['ci-steward', 'steward']]) {
+  test(`${kind}: authorization job does not configure Git credentials`, () => {
+    assert.doesNotMatch(jobBlock(kind, 'authorize'), /setup-git/);
+  });
+
+  test(`${kind}: Git uses the native App token from the environment without storing it`, t => {
+    const command = gitHelperStep(kind, job);
+    const root = mkdtempSync(join(tmpdir(), 'factory-git-helper-'));
+    t.after(() => rmSync(root, { recursive: true }));
+    const setup = run('bash', ['-c', command], isolatedEnv(root));
+    assert.equal(setup.status, 0, `setup-git failed: ${setup.stderr}`);
+    assert.equal(credentialPassword(isolatedEnv(root)), undefined,
+      'No credential is available before the native action supplies a token');
+    for (const name of ['GITHUB_TOKEN', 'GH_TOKEN']) {
+      const canary = `ghs_fakeCanary${name}${randomBytes(8).toString('hex')}`;
+      assert.ok(credentialPassword(isolatedEnv(root, { [name]: canary })) === canary,
+        `git credential fill did not return the ${name} canary`);
+      for (const file of [join(root, 'gitconfig'), join(root, 'gh', 'hosts.yml')]) {
+        assert.ok(!existsSync(file) || !readFileSync(file, 'utf8').includes(canary),
+          `${file} stores a token value`);
+      }
+    }
+  });
+}
