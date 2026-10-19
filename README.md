@@ -8,15 +8,17 @@ This repository is public. It holds policy, credential names, and procedures onl
 
 | Path | Purpose |
 |---|---|
-| `config/jhd.json` | Single source of policy: repositories, trust lists, queue labels, source ownership, CI Steward limits, merge exclusions, and each repository's state. |
+| `config/jhd.json` | Repositories, trust, source ownership, approved cadences, deferred work, CI Steward limits, and human release gates. |
 | `scripts/validate.py`, `tests/` | Policy lint. Fails when release automation, wildcard bots, or unproven automatic merges appear in the config. |
-| `automations/` | Prompts for the native Factory scheduled automations: intake, worker, readiness, health, and digest. `COMMON.md` holds rules shared by all five. |
+| `automations/` | Weekly Health and Digest, monthly assessment-only Readiness, and no-op prompts for deferred Worker and source Intake. `COMMON.md` holds recurring-run rules. |
 | `docs/OPERATIONS.md` | Install, pause, resume, canary, and recovery steps. |
 | `docs/CREDENTIALS.md` | Credential metadata: name, purpose, scope, destination, expiry, and status. |
 | `docs/PROVENANCE.md` | Pinned action versions, template corrections, and what has been verified. |
 | `.github/workflows/factory-review.yml`, `factory-mentions.yml`, `factory-ci-steward.yml` | This repository's copies of the review, mention, and CI Steward workflows that each JHD repository receives. |
+| `.github/workflows/factory-triage.yml`, `droid-wiki-refresh.yml` | New-issue classification without implementation, and the official default-branch wiki refresh with a rolling reviewable PR. |
 | `.github/workflows/validate.yml` | Runs the policy lint and tests as the `Automation configuration` workflow. |
 | `.github/workflows/droid-review-reusable.yml` | Existing reusable review workflow. It stays in place until its replacement is proven. |
+
 ## States
 
 Every automation and repository has one state:
@@ -27,6 +29,10 @@ Every automation and repository has one state:
 
 Checks that were not run are reported as `NOT_RUN` with a reason.
 
+Ticket-to-PR and recurring source Intake are **deferred**, not scheduled implementation work. Their retained registrations stay paused and cannot perform their former tasks.
+
+Review, PR commands, Triage and CI Steward are opt-in. The official wiki workflow starts on default-branch pushes as soon as its setup PR merges; merging it is an activation decision.
+
 Live status is in the issue titled `JHD automation status` in the private `Jason-Holt-Digital/jhd-skills` repository.
 
 ## Validate
@@ -34,7 +40,7 @@ Live status is in the issue titled `JHD automation status` in the private `Jason
 ```sh
 uv run python scripts/validate.py
 uv run python -m unittest discover -s tests -v
-node --test tests/test_workflow_authorization.cjs
+node --test tests/*.cjs
 uvx ruff check scripts tests
 uvx ty check scripts tests
 ```

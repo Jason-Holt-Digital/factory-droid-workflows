@@ -1,40 +1,88 @@
 # Operations
 
-All five automations run as **local** native Factory scheduled automations on the Mac mini. They use the Mac mini's own `gh` login and DroidProxy model. Factory's hosted preview returning 403 does not affect these local runs.
+## Agreed operating model
 
-`{{CONTROL_ROOT}}` is the canonical clone of this repository on the Mac mini, on `main`. Repository `path` values in `config/jhd.json` are relative to the parent directory of `{{CONTROL_ROOT}}`. The installed prompts contain the absolute path in place of `{{CONTROL_ROOT}}`. `automations/COMMON.md` is read at run time and is not rendered; each run takes the control root from the absolute path it used to load `COMMON.md` and binds it in every shell command.
+Code Review, AutoWiki, issue Triage, and bounded CI repair run on events, not polling schedules. Weekly Health and Digest and monthly Readiness run as local native Factory automations on the Mac mini. Ticket-to-PR and recurring source Intake are deferred.
 
-## Automations
+These frequencies are JHD choices for a low-volume organization, not Factory Readiness requirements.
 
-Schedules are cron expressions in UTC.
+| Automation | Starts when | Required outcome |
+|---|---|---|
+| Code Review | New eligible PR head | One current-head review with a security pass; no duplicate review for the same PR/head/base identity. |
+| AutoWiki | Push to the default branch | Refresh the Factory wiki and open or update one reviewable `factory/droid-wiki` PR containing generated pages and metadata. |
+| Issue Triage | New GitHub issue | One comment classifying it, suggesting related work and a human route. No implementation or ready label. |
+| CI Steward | An allowlisted deterministic CI workflow fails | Diagnose it; at most one retry and two fix commits, with ten invocations per PR. |
+| Health | Weekly | At most one justified maintenance PR across the organization. No work if no useful fix exists. |
+| Digest | Weekly | Update one private status issue covering the previous seven days and decisions waiting for a person. |
+| Readiness | Monthly | Official stored assessments for at most two rotating repositories, with prioritized findings. No remediation. |
 
-| Automation | Prompt | Schedule (UTC) | Model and effort | State |
-|---|---|---|---|---|
-| Intake | `automations/intake.md` | `7 * * * *` (hourly) | `custom:droidproxy:gpt-6.1-sol`, high | prepared |
-| Worker | `automations/worker.md` | `*/15 * * * *` | `custom:droidproxy:gpt-6.1-sol`, high | prepared |
-| Readiness | `automations/readiness.md` | `0 3 * * 1` (Monday) | `custom:droidproxy:gpt-6.1-sol`, high | prepared |
-| Health | `automations/health.md` | `0 3 * * 3` (Wednesday) | `custom:droidproxy:gpt-6.1-sol`, high | prepared |
-| Digest | `automations/digest.md` | `30 7 * * *` (daily) | `custom:droidproxy:gpt-6.1-sol`, high | prepared |
+Factory references: [Code Review](https://docs.factory.ai/software-factory/code-review-ci), [AutoWiki](https://docs.factory.ai/software-factory/wiki/auto-refresh), [Triage](https://docs.factory.ai/software-factory/triage), [Automations](https://docs.factory.ai/software-factory/automations), and [Readiness](https://docs.factory.ai/agent-readiness/readiness-report).
 
-The worker and readiness prompts start nested `droid exec` runs at xhigh effort for hard remediation. Each nested run is a new session with an explicit `--auto` level. A resumed session keeps its original autonomy level even when a higher `--auto` is passed.
+## Scheduled automations
 
-## Install
+Cron expressions are UTC. The default days and times preserve the earlier Health time and use Monday for the weekly Digest and the first day of the month for Readiness.
 
-1. Fast-forward `{{CONTROL_ROOT}}` to `main` and run the validation commands in the README.
-2. For each row above, create the automation with `CreateAutomation`:
-   - `executionLocation: "local"`, `trigger: "schedule"`, `status: "paused"`
-   - `name`: `JHD <Automation>`, for example `JHD Intake`
-   - `schedule`, `model`, and `reasoningEffort` from the table
-   - `prompt`: the prompt file's text with every `{{CONTROL_ROOT}}` replaced by the absolute path
-3. Record each returned automation ID in the status issue. IDs are not secret, but they belong in the private status issue, not here.
+| Automation | Prompt | Schedule (UTC) | Status during preparation |
+|---|---|---|---|
+| Health | `automations/health.md` | `0 3 * * 3`, Wednesday 03:00 | paused |
+| Digest | `automations/digest.md` | `30 7 * * 1`, Monday 07:30 | paused |
+| Readiness | `automations/readiness.md` | `0 3 1 * *`, first day 03:00 | paused |
+| Ticket-to-PR | `automations/worker.md` | none approved | deferred, retained paused |
+| Source Intake | `automations/intake.md` | none approved | deferred, retained paused |
 
-Every automation starts paused. It stays paused until the infrastructure PRs merge and its canary passes.
+All use `custom:droidproxy:gpt-6.1-sol` at high effort. Readiness rotates a bounded two-repository batch each month, not every repository every month. Its `/readiness-report` sessions are new sessions with explicit `--auto medium`. `/readiness-fix` is a separate human-approved task.
 
-The five local automations also appear in the cloud list as synced registrations. They are not a second set of schedules.
+The two deferred local registrations retain a weekly parking cron because native registrations require one. They stay paused and their replacement prompts stop without external writes, even if started manually. Do not resume them. The previous 15-minute Worker and hourly Intake behavior is removed, not merely hidden behind a pause.
 
-## Workflows
+The local registrations also appear in the cloud list. They are mirrors, not independent schedules. `ReadAutomation` uses the local slug for local reads and the cloud ID for cloud reads. Local `EditAutomation` supports prompts, names, models and status, but not cadence. For a cadence correction, edit only the existing `schedule:` field in its `HEARTBEAT.md`, keep `paused: true`, and verify the local and mirrored readbacks. Do not create a second registration to change the cadence.
 
-Each of the 13 repositories gets two workflows: native review with a security pass (`factory-review.yml`) and native `@droid` commands on pull requests (`factory-mentions.yml`). A command runs only on an open pull request from a branch in the same repository, and only when a person with write access to the repository wrote the comment or review. A `@droid` comment on an issue starts nothing; issue implementation goes through the local worker queue. The Factory bot cannot author a command; it remains allowed only for automatic review and CI Steward push events. Six repositories also get CI Steward (`factory-ci-steward.yml`), which watches only their existing deterministic build and test workflows:
+## Canonical runtime prerequisite
+
+`{{CONTROL_ROOT}}` is the canonical clone of this repository on the Mac mini, on `main`. Paths in `config/jhd.json` are relative to its parent directory. Installed prompts replace `{{CONTROL_ROOT}}` with that absolute path. `COMMON.md` is read at run time.
+
+Before a normal run:
+
+1. A person reviews and merges the central setup PR.
+2. Fast-forward the clean canonical clone to `main` and run the README checks.
+3. Confirm `automations/COMMON.md` and `config/jhd.json` exist there. A setup worktree is not the canonical runtime.
+4. Install or update only the three recurring prompts above with `status: paused`, and read them back. Keep the deferred registrations paused.
+5. Run bounded canaries before resuming schedules.
+
+No normal automation run is ready while its canonical policy files are missing. Do not point it at an unmerged setup branch to conceal that prerequisite.
+
+## Event-driven workflows
+
+All 13 repositories have gated review and human `@droid` PR-command wrappers. These replacement wrappers limit commands to open, same-repository PRs and human repository writers. They do not implement issue mentions; Ticket-to-PR is deferred. Legacy issue responders still need the controlled cutover below.
+
+### AutoWiki
+
+Use the current official `/install-wiki` template, including fixed repository-wide concurrency, full history, restoring `droid-wiki/` from `factory/droid-wiki`, and hidden metadata in the artifact. The generation job is read-only. Only the separate publish job receives write permissions and an optional `FACTORY_WIKI_PR_TOKEN`. Media is excluded from Git.
+
+Mythic's existing setup is PR #1921. It already contains these settings and is reused unchanged. The other twelve repositories receive the same template in their existing setup PRs. Do not open a duplicate Mythic wiki workflow.
+
+**Merging a wiki setup workflow activates its default-branch push trigger.** It has no JHD enable variable. Wait for restored Factory quota and approval of that activation before merging those PRs. This preparation does not merge any PR.
+
+`FACTORY_API_KEY` already exists at organization scope for all repositories. No `FACTORY_WIKI_PR_TOKEN` was present in organization or repository secret metadata at preparation time. Do not reuse or widen `RELEASE_PLEASE_TOKEN`.
+
+The approved publishing path is the official `GITHUB_TOKEN` fallback. Jason approved enabling Actions PR creation in `jhd-astro` and `Mythic-Source-Materials`; both settings were read back as enabled with default token permissions still read-only. GitHub combines PR creation and approval in this repository setting; no workflow was granted a task to approve or merge PRs. No secret was created or widened.
+
+Fallback-created PRs do not trigger other workflows. A person must close and reopen the wiki PR to start its checks. A dedicated fine-grained wiki token remains an optional future change requiring approval, not a prerequisite for this fallback path.
+
+A green generation job or warning-only publish failure does not verify the rolling-PR outcome. Inspect the actual PR, `.wiki-meta.json`, media exclusions, and next incremental update.
+
+### Issue Triage
+
+`factory-triage.yml` is a JHD classification workflow using the official pinned Droid Exec Base Action. It is not the scheduled Slack `/install-triage` package and is not Ticket-to-PR.
+
+It reads the new issue, comments, and the 100 most recently updated issues/PRs from that same repository. A read-only-token job lets the model use only file reads, searches and a local patch tool to write a classification JSON file. It has no shell or connector tools. Before uploading the artifact, a deterministic step removes all free text and extra fields, retaining only fixed category values and numbers from that candidate list. A separate issue-write job validates those fields again and posts one bounded comment to the original issue. It does not execute model output, change labels or assignees, close issues, or grant ready status. If the issue changed or closed during classification, publication stops.
+
+Start with one repository when enabling it. A bounded candidate search cannot prove there are no older duplicates. Edited issues do not create new runs; an operator may rerun a missed classification. Linear and Sentry source enrollment and writeback remain separate, unverified prerequisites, not hidden hourly polling.
+
+Use a private repository for the pilot. Public issue authors can start paid runs once Triage is enabled there. Tool allowlisting is not a filesystem sandbox; keep the pilot bounded and inspect its artifacts and comment before expanding.
+
+### CI Steward
+
+Only six repositories have deterministic GitHub CI to watch:
 
 | Repository | Watched workflows |
 |---|---|
@@ -45,74 +93,56 @@ Each of the 13 repositories gets two workflows: native review with a security pa
 | `broken-empires-creator` | CI |
 | `factory-droid-workflows` | Automation configuration |
 
-The other seven repositories have no deterministic GitHub CI to watch, so they get no CI Steward workflow. Existing product CI and release workflows are unchanged.
+The other seven receive no CI Steward workflow. Steward does not watch AI, release, publishing, deployment, or security-policy workflows. Diagnosis and fixes have separate enable variables.
 
-The live `jasonholtdigital.com` website is `jhd-astro`, not `jhd-jaspr`; both repositories remain covered. Astro uses Node 22 and the local checks `npm test`, `npm run check`, and `npm run build`. Its Cloudflare Worker is `jhd-astro-web`.
+## Activation controls
 
-The website repository was transferred from `kingdomseed` with its repository ID and `main` history preserved. Cloudflare is reconnected to `Jason-Holt-Digital/jhd-astro` on `main`, with builds paused. Its encrypted `TURNSTILE_SECRET_KEY` build entry was restored and verified after a reload. The existing production deployment remains active; this rollout deployed nothing.
-
-Keep builds paused until a person approves resuming them. Once resumed, pushes to `main` use the existing `npm run build` and `npx wrangler deploy` commands. Never enable automatic merges while that path can deploy production without a separate human gate.
-
-The Flutter app in `ac-deck-builder` is under `prototypes/ac_deck_prototype`, not the repository root. Its workflow files under that prototype directory are not root GitHub Actions workflows. Before its documented tests, run `flutter pub get` and `flutter gen-l10n` in that directory to prepare ignored dependencies and translations. Native QA and deployment verification remain required before activation.
-
-Neither addition changes Release Please or enables any Factory variable, schedule, or automatic merge.
-
-## Activation requirements
-These must be true before the matching piece is switched on.
-
-- **Official Droid action workflows.** `FACTORY_API_KEY` is available to the repository, the installed Factory GitHub App has access to the repository, and the workflow's repository variable is `true`. The workflows use the official `Factory-AI/droid-action` v10 at its pinned commit, unchanged; see `docs/PROVENANCE.md`.
-- **Sentry source.** A staging Sentry project is mapped to a repository, and Sentry's native GitHub integration is configured and tested on it. In the integration settings, closing a GitHub issue must not resolve the Sentry issue, and assignee and status sync must not override a person's choices. See the [Sentry GitHub integration docs](https://docs.sentry.io/organization/integrations/source-code-mgmt/github/).
-- **Linear source.** A separate JHD Linear connection exists alongside the Artwod one, and its workspace and teams are verified.
-- **Automatic merge.** `automerge` stays `false` for every repository until that repository is `verified` and its deployment side effects are audited.
-
-## Canary and activation
-
-Canary each automation once, in this order: digest, intake, worker, health, readiness. The normal prompts do not filter by the `automation:canary` label, so the label alone constrains nothing. A canary run is constrained only by a temporary prompt that names its targets. The schedule stays `paused` for the whole procedure.
-
-1. Read the automation with `ReadAutomation` (`executionLocation: "local"`) and keep its current prompt, the correctly rendered text with the absolute control root.
-2. Write a temporary canary prompt: the original prompt followed by a canary section that binds explicit targets and forbids everything else.
-   - Targets: one pilot repository (`mythic-dice-parser` or `mythic_gme_apps`) and, where the automation handles issues or sources, the exact issue number or source IDs.
-   - Limit claim, cleanup, merge, source scanning, health checks, and readiness reports to those targets. Do no work on any other repository, issue, or source item.
-   - Never merge anything, even when every merge condition is true.
-3. Install it with `EditAutomation` (`executionLocation: "local"`, `prompt`), leaving `status: "paused"`.
-4. Run it once with the **Run now** control in the Factory desktop app. `RunAutomation` starts only cloud automations and refuses local-only ones.
-5. Inspect the real output and the run record. Check the observable result, not the run's exit status:
-   - Digest: the canary prompt names the known private status issue; that one issue is updated, and no new issue is created.
-   - Intake: needs verified test source identities and a nonproduction staging source in the canary prompt. Expect one GitHub issue per test source item, with a backlink, no duplicate on a second run, and one source progress update when the stage changes. If no such source is available, record intake as `NOT_RUN` with the reason; this does not delay the worker or digest canaries.
-   - Worker: the canary prompt names one nonproduction test issue that a trusted person labeled both `automation:ready` and `automation:canary`. Expect one `automation/worker` branch whose claim commit names that issue, and one PR for it with tests, QA evidence, and an independent review on the current head. Nothing is merged.
-   - Health: at most one small PR in the named repository, with a stated reason.
-   - Readiness: an official stored report for the named repository, or the exact error the command returned. The canary may reuse an official report already stored for that repository; record it as existing evidence, not as a new run.
-6. Restore the original prompt with `EditAutomation`, and confirm with `ReadAutomation` that the restored prompt matches the kept text. Leave the automation `paused`.
-7. Change the automation's state to `configured`, then to `verified` after the result is confirmed, in `config/jhd.json` (repositories) or the status issue (automations). Set `status: "active"` only when the activation requirements above are met and the canary evidence supports it.
-
-Intake stays paused for a source until that source's state is `verified` in `config/jhd.json`.
-
-## Pause and resume
-
-| Control | Pause | Resume |
+| Control | Off | On, after a bounded canary |
 |---|---|---|
-| Native automation | `EditAutomation` with `status: "paused"` | `status: "active"` |
-| One issue | Add `automation:paused` | Remove the label |
-| Review workflow | Repository variable `JHD_FACTORY_REVIEW_ENABLED` unset or `false` | `true` |
-| `@droid` PR commands | `JHD_FACTORY_MENTIONS_ENABLED` unset or `false` | `true` |
+| Health, Digest, Readiness | Native status `paused` | Native status `active` |
+| Ticket-to-PR, source Intake | Deferred and paused | Not authorized in this phase |
+| Code Review | `JHD_FACTORY_REVIEW_ENABLED` unset or `false` | `true` |
+| Human PR commands | `JHD_FACTORY_MENTIONS_ENABLED` unset or `false` | `true` |
+| Issue Triage | `JHD_FACTORY_TRIAGE_ENABLED` unset or `false` | `true`, one pilot first |
 | CI Steward diagnosis | `JHD_FACTORY_STEWARD_ENABLED` unset or `false` | `true` |
-| CI Steward fixes | `JHD_FACTORY_STEWARD_FIX_ENABLED` unset or `false` | `true` after the steward canary |
+| CI Steward fixes | `JHD_FACTORY_STEWARD_FIX_ENABLED` unset or `false` | `true` after repair proof |
+| AutoWiki | Setup PR unmerged, or workflow disabled | Merge explicitly activates default-branch pushes |
 
-The four variables are opt-in. A workflow runs its Droid job only when its variable is exactly `true`; an unset variable means off. Legacy Factory workflows stay enabled until their replacement is verified in the same repository; then disable only the superseded Factory job. Product CI, release, and deployment jobs are never disabled by this rollout.
+Review, mentions and Steward use the unchanged official `Factory-AI/droid-action` v10 at the pinned commit in `docs/PROVENANCE.md`. Factory App access and credential availability are required but do not prove hosted execution. Keep all repository `automerge` values false.
 
-## Recovery
+Legacy responders remain until a replacement is proven, but do not leave both responding to the same event after cutover. Disable only a superseded Factory job, never product CI or release/deployment jobs.
 
-- **Mac mini offline or asleep.** Local runs do not happen and nothing moves to another machine. When the Mac mini returns, the next scheduled run resumes. The digest reports the gap from the age of the newest run record.
-- **Worker stopped before opening a PR.** The `automation/worker` branch stays, so no other issue starts in that repository. The next worker run labels the issue `automation:blocked` and comments. A person decides whether to continue or abandon the branch.
-- **Open PR failing CI.** CI Steward is the only automatic fixer. The worker does not push to a PR after opening it.
-- **Source conflict or cancellation.** The automation adds `automation:paused` and comments on the GitHub issue. A person resolves it in the source system, then removes the label.
-- **Credential failure.** The run stops and records a configuration failure naming the credential, never its value. See `docs/CREDENTIALS.md`.
-- **CI Steward exhausted.** The steward stops at its limits in `config/jhd.json` and escalates on the PR with the failing log excerpt.
+## Activation sequence
 
-## Run records
+Verify available Factory quota before a paid execution. Do not activate on a guessed reset time.
 
-Each run writes a short Markdown record to `{{CONTROL_ROOT}}/local-evidence/runs/<automation>/<UTC timestamp>.md`. The folder is gitignored. Records hold outcomes, links, and `NOT_RUN` reasons. They never hold secrets, tokens, private source text, or raw logs. The digest reads them.
+1. Review the central setup and explicitly approve its AutoWiki activation before merging: that PR includes the central repository's wiki workflow too. Prepare the canonical runtime as above.
+2. Confirm the affected repository can actually start GitHub Actions jobs after the CI budget change. A zero-step billing failure proves nothing about Factory or Sentry credentials.
+3. Canary Code Review on one same-repository PR/head. Confirm a real posted review, then cut over that repository's legacy responder.
+4. Canary one issue classification. Expect one bounded comment, no implementation or label changes, and no second comment on rerun.
+5. Approve AutoWiki activation and its publishing credential/permission path. Merge one wiki setup and observe one rolling wiki PR, then an incremental update with preserved metadata.
+6. Canary CI Steward with one eligible nonproduction failure. Verify diagnosis before separately enabling bounded repairs.
+7. Canary Digest against the known private status issue, Health against one named repository, and Readiness against one named repository. Keep their schedules paused during each manual canary.
+8. Resume only the three recurring automations whose outcomes passed and whose activation is approved. Leave Ticket-to-PR and Intake deferred.
 
-## Human-only actions
+For a local canary, read and save the installed prompt, append a temporary section naming the exact repository and issue where applicable, forbidding all other targets and every merge, and install it while paused. Use **Run now** in the desktop app. Inspect the result and run record, restore the saved prompt, then read it back. `RunAutomation` does not start local-only automations.
 
-People perform every release PR merge, release tag, package publication, app-store upload, and production deployment. The `icloud_storage_plus` `pub.dev` environment requires the `kingdomseed` reviewer with admin bypass off. Its approval canary reached the required-human-approval state with no job steps executed; no approval was granted.
+## Source and production ownership
+
+Linear requires the separate verified JHD workspace and team mappings, not the Artwod connection. Sentry requires verified native GitHub linking and feedback. A person closing a GitHub issue must not resolve its Sentry source or overwrite a person's source choices. Do not enable unverified source writeback.
+
+Every release PR merge, tag, package publication, store upload and production deployment remains human-owned. The `icloud_storage_plus` `pub.dev` environment approval canary reached the required-human-approval wait with zero executed steps and was cancelled without approval. That proves the gate, not publication.
+
+The live website is `jhd-astro`, not `jhd-jaspr`. Its Cloudflare Worker is `jhd-astro-web`, connected to organization `main`, with builds paused. The encrypted `TURNSTILE_SECRET_KEY` entry was verified after reload; the matching Formspark form's stored key matched the rotated widget secret. No deployment or support submission was performed. Other shared-widget consumers and real Siteverify consumption remain unverified. Keep builds paused until a person approves resuming them. Existing `npm run build` and `npx wrangler deploy` commands can deploy production on a main push; automatic merge must remain off.
+
+The deck Flutter app lives under `prototypes/ac_deck_prototype`. Dependency and localization preparation precede its tests. Native QA is still unverified. No release setup was changed for either addition; Tome Keeper's existing Release Please configuration stays intact.
+
+## Recovery and evidence
+
+Each recurring run writes `{{CONTROL_ROOT}}/local-evidence/runs/<automation>/<UTC timestamp>.md` with outcomes, links, failures and `NOT_RUN` reasons. The folder is gitignored. Never store secret values, raw private evidence, or recordings in this public repository.
+
+- If the Mac mini is offline, local runs wait for the machine. Digest compares only actual active cadences, not a former worker heartbeat.
+- Leave legacy claims for a person; there is no active worker to recover them.
+- Credential failures stop the affected run and name only the credential metadata.
+- Steward stops at its configured bounds and escalates with the relevant failing line.
+- Merged is not released. Released is not verified. Report each observed state.

@@ -251,7 +251,7 @@ for (const body of ['@droid', '@droid review', '@droid fill', '@droid security',
     denied(result);
     assert.deepEqual(result.failures, []);
     assert.match(result.infos[0], /including full security scans, are PR-only/);
-    assert.match(result.infos[0], /local queue worker/);
+    assert.match(result.infos[0], /Ticket-to-PR is deferred/);
     assert.deepEqual(result.pulls, []);
     assert.deepEqual(result.permissions, []);
   });

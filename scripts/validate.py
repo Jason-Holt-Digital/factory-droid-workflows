@@ -29,6 +29,35 @@ def validate(config):
             errors.append(f"{key} must be false.")
     if "*" in config["trusted_bots"]:
         errors.append("Trusted bots must be explicitly named.")
+    policy = config["automation_policy"]
+    for name in ("ticket_to_pr", "source_intake"):
+        if policy[name]["state"] != "deferred" or policy[name]["schedule"] is not None:
+            errors.append(f"{name} must remain deferred without a schedule.")
+    for name, schedule in (
+        ("health", "0 3 * * 3"),
+        ("digest", "30 7 * * 1"),
+        ("readiness", "0 3 1 * *"),
+    ):
+        if policy[name]["schedule"] != schedule:
+            errors.append(f"{name} must use the approved cadence: {schedule}.")
+    if policy["health"]["max_pull_requests"] != 1:
+        errors.append("Health may open at most one maintenance PR per week.")
+    if policy["digest"]["lookback_days"] != 7:
+        errors.append("Weekly Digest must cover seven days.")
+    readiness = policy["readiness"]
+    if readiness["remediation"] is not False or readiness["max_repositories"] != 2:
+        errors.append(
+            "Readiness must assess at most two repositories without remediation."
+        )
+    triage = policy["triage"]
+    if (
+        triage["trigger"] != "issues.opened"
+        or triage["implementation"] is not False
+        or triage["automatic_ready"] is not False
+    ):
+        errors.append(
+            "Triage must classify new issues without implementation or ready labels."
+        )
     steward = config["ci_steward"]
     for key, maximum in (
         ("max_retries", 1),

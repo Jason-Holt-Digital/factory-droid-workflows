@@ -11,6 +11,14 @@
   "automatic_release_merges": false,
   "automatic_tag_creation": false,
   "automatic_production_deployments": false,
+  "automation_policy": {
+    "ticket_to_pr": {"state": "deferred", "schedule": null},
+    "source_intake": {"state": "deferred", "schedule": null},
+    "health": {"schedule": "0 3 * * 3", "max_pull_requests": 1},
+    "digest": {"schedule": "30 7 * * 1", "lookback_days": 7},
+    "readiness": {"schedule": "0 3 1 * *", "max_repositories": 2, "remediation": false},
+    "triage": {"trigger": "issues.opened", "implementation": false, "automatic_ready": false}
+  },
   "ci_steward": {
     "max_retries": 1,
     "max_fix_commits": 2,

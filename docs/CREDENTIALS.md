@@ -6,7 +6,8 @@ Each runtime uses the identity it actually runs as. A hosted runner or GitHub Ac
 
 | Credential | Purpose | Scope | Destination | Expiry | Status |
 |---|---|---|---|---|---|
-| `FACTORY_API_KEY` | Official Droid action: review, security review, `@droid` mentions, CI Steward | Existing Factory API credential | Existing organization secret, all repositories, covering the 13 targets | Not exposed by metadata | Unchanged. A hosted review reached Factory but model execution failed at the weekly usage limit with Extra Usage empty |
+| `FACTORY_API_KEY` | Official Droid action, classification Base Action, and official AutoWiki CLI generation | Existing Factory API credential | Existing organization secret, all 13 repositories | Not exposed by metadata | Unchanged. Hosted model execution awaits quota restoration |
+| `FACTORY_WIKI_PR_TOKEN` | Rolling wiki PRs whose creation triggers PR checks | Dedicated fine-grained token, contents/PR write on selected repositories; publish job only | Optional repository or organization secret | Not issued | Absent in organization and all 13 repository metadata. No token created and no release PAT widened. Official `GITHUB_TOKEN` fallback requires Actions PR-creation permission and manual close/reopen to start PR checks |
 | `RELEASE_PLEASE_TOKEN` | Lets Release Please PRs trigger CI | Fine-grained token: Contents, Pull requests, and Issues read and write, on the five Release Please repositories only; Metadata read-only; no organization permissions | Organization secret, selected access to exactly those five repositories | 2026-11-18 | Created in the GitHub UI on 2026-10-19; saved five-repository access list verified through the API. Runtime execution pending |
 | Tome Keeper release credential | Tome Keeper's existing release setup | Existing | Existing | Existing | Unchanged |
 | `GLPUB_TOKEN` | Private package access during builds | Read access to the private package registry | Existing secret destinations | Existing | Inventory pending; reuse as is |
@@ -23,7 +24,8 @@ Each runtime uses the identity it actually runs as. A hosted runner or GitHub Ac
 
 ## Rules
 
-- Workers, health runs, readiness runs, and CI Steward never receive publishing credentials and never create release tags.
-- `FACTORY_API_KEY` reaches only the official Droid action and the step that checks it is present. No release or publishing credential is passed to the review, mention, or CI Steward workflows.
+- Health, Readiness, Triage and CI Steward never receive release or production publishing credentials and never create release tags. Ticket-to-PR is deferred.
+- `FACTORY_API_KEY` reaches the official Droid action, its Base Action, the official wiki generation step, and presence checks. No release or production publishing credential is passed to them.
+- The wiki generator never receives `FACTORY_WIKI_PR_TOKEN`. Only the separate deterministic wiki-publish job may use it. The Triage model has no issue-write token; only its separate deterministic comment job has issue-write permission.
 - A missing credential produces an explicit configuration failure or a paused automation, never a skipped run reported as success.
 - When a credential is issued, add its expiry here and nothing else about it.

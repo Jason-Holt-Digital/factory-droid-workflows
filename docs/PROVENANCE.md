@@ -10,14 +10,14 @@ What the setup is built from and what has been proven. Dates are 2026-10-19 unle
 | `actions/checkout` | v5 | `fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09` |
 | `actions/github-script` | v8 | `ed597411d8f924073f98dfc5c65a23a2325f34cd` |
 
-Workflows reference the commit, with the version in a comment.
+The review, mention, Steward and Triage wrappers reference commits, with versions in comments. AutoWiki preserves the current official installer template, including its `@v4` checkout/artifact references and pinned `create-pull-request` v8.1.1 commit `5f6978faf089d4d20b00c7766989d076bb2fc7f1`.
 
 ## Corrections to the official templates
 
 - Add `synchronize` to the pull request triggers, so each new head is reviewed.
 - List trusted bots by name. Never use a wildcard.
 
-The review, mention, and CI Steward workflows are opt-in through the repository variables `JHD_FACTORY_REVIEW_ENABLED`, `JHD_FACTORY_MENTIONS_ENABLED`, `JHD_FACTORY_STEWARD_ENABLED`, and `JHD_FACTORY_STEWARD_FIX_ENABLED`. Each job runs only when its variable is `true`.
+Review, mentions, Triage and CI Steward are opt-in through `JHD_FACTORY_REVIEW_ENABLED`, `JHD_FACTORY_MENTIONS_ENABLED`, `JHD_FACTORY_TRIAGE_ENABLED`, `JHD_FACTORY_STEWARD_ENABLED`, and `JHD_FACTORY_STEWARD_FIX_ENABLED`. AutoWiki has the official default-branch push trigger; merging its setup PR is activation, not a gated dry run.
 
 ## Official action
 
@@ -26,6 +26,8 @@ The workflows use the official upstream `Factory-AI/droid-action` v10 at the pin
 ## Workflow coverage
 
 - Review with a security pass, and `@droid` mentions: all 13 repositories (26 workflow files).
+- Issue Triage: 13 classification-only workflows using the official pinned `Factory-AI/droid-action/base-action`, with restricted local tools and a separate validated comment job. This is JHD configuration, not the scheduled Slack Triage package.
+- AutoWiki: twelve official-template workflows added to existing setup PRs; Mythic's existing PR #1921 already has the current template and is reused unchanged. All restore the rolling wiki, preserve hidden metadata, exclude media, and separate read-only generation from write-permission publication.
 - CI Steward: six repositories with existing deterministic CI, watching only those workflows. The list is in `docs/OPERATIONS.md`.
 - Review binds the PR, head, and base refs and SHAs, cancels superseded runs, and skips a matching completed review.
 - Opt-in jobs on the setup PRs are skipped. Hosted Factory execution remains unverified.
@@ -62,11 +64,13 @@ The workflows use the official upstream `Factory-AI/droid-action` v10 at the pin
 - Five Release Please setups are open as draft PRs: `MythicGME2e` #1948, `mythic_gme_apps` #126, `icloud_storage_plus` #49, `mythic-dice-parser` #7, and `jhd-jaspr` #1. Their 19 offline verification groups passed. Real credentials and publishing are not proven.
 - The `icloud_storage_plus` `pub.dev` environment requires a human reviewer with admin bypass off. Its approval canary reached the human-approval wait with zero executed steps, then was cancelled without approval. This proves the approval gate, not package publication.
 - Tome Keeper's existing release setup is unchanged.
-- AutoWiki and extraction of the overlay are deferred and outside this rollout.
+- AutoWiki is included; extraction of the overlay stays deferred.
 - No real or test package publication has been launched.
 
 ## Not yet proven
 
-Linear JHD intake, Sentry writeback, Slack alerts, hosted Factory preview features, Release Please credential execution, live runs of the new review, mention, and CI Steward workflows, CI Steward repair, native Flutter QA, and every native automation are not verified. Five local native automations are installed and paused. Their state is tracked in `Jason-Holt-Digital/jhd-skills` issue #1.
+Linear JHD intake, Sentry writeback, Slack alerts, hosted Factory preview features, Release Please credential execution, live runs of the new review, mention, Triage, wiki and CI Steward workflows, CI Steward repair, native Flutter QA, and every native automation are not verified. Health and Digest are weekly, Readiness is monthly and assessment-only, and the two former Worker/Intake registrations are retained paused with no-op deferred prompts. All five registrations remain paused. Their state is tracked in `Jason-Holt-Digital/jhd-skills` issue #1.
+
+No dedicated wiki PR token exists. With Jason's approval, GitHub Actions PR creation was enabled in `jhd-astro` and `Mythic-Source-Materials`, and both settings were read back with default token permissions unchanged at read-only. All thirteen repositories can use the official fallback, but a person must close and reopen fallback-created wiki PRs for their checks. No secret scope changed.
 
 The existing parser review action reached Factory on PR #8 but failed: weekly standard usage limit reached and Extra Usage balance empty. This is an observed service limit, not a credential-presence failure.
