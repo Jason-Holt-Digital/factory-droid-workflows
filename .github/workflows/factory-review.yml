@@ -145,8 +145,10 @@ jobs:
                   description: 'Factory review done; comment @droid review for another',
                 });
               } catch (error) {
-                // Another PR's review created it first.
+                // Another PR's review may have created it first; any other
+                // 422 leaves the label missing and the lookup throws.
                 if (error.status !== 422) throw error;
+                await github.rest.issues.getLabel({ owner, repo, name });
               }
             }
             await github.rest.issues.addLabels({

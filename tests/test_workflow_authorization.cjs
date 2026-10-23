@@ -520,12 +520,15 @@ async function runLabelStep(labelExists, liveHead = 'head-sha') {
       issues: {
         async getLabel(params) {
           calls.push(['get', params.name]);
-          if (labelExists !== true) throw Object.assign(new Error('Not Found'), { status: 404 });
+          const created = labelExists === 'race' && calls.some(call => call[0] === 'create');
+          if (labelExists !== true && !created) {
+            throw Object.assign(new Error('Not Found'), { status: 404 });
+          }
           return { data: {} };
         },
         async createLabel(params) {
           calls.push(['create', params.name]);
-          if (labelExists === 'race') {
+          if (labelExists === 'race' || labelExists === 'invalid') {
             throw Object.assign(new Error('already_exists'), { status: 422 });
           }
         },
@@ -552,8 +555,13 @@ test('review: creates the droid-reviewed label when the repository lacks it', as
 
 test('review: labels the PR when another review created the label first', async () => {
   assert.deepEqual(await runLabelStep('race'), [
-    ['get', 'droid-reviewed'], ['create', 'droid-reviewed'], ['add', 42, ['droid-reviewed']],
+    ['get', 'droid-reviewed'], ['create', 'droid-reviewed'], ['get', 'droid-reviewed'],
+    ['add', 42, ['droid-reviewed']],
   ]);
+});
+
+test('review: fails when label creation is rejected and the label is still missing', async () => {
+  await assert.rejects(runLabelStep('invalid'), { status: 404 });
 });
 
 test('wiki: generation runs only on the default branch', () => {
