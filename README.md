@@ -1,6 +1,6 @@
 # factory-droid-workflows
 
-Policy, documentation, and prompt templates for Jason Holt Digital (JHD) software-delivery automation across 13 repositories. It also holds the reusable Droid review workflow.
+Policy, documentation, and prompt templates for Jason Holt Digital (JHD) software-delivery automation across 13 repositories.
 
 This repository is public. It holds policy, credential names, and procedures only. Secret values, private issue text, licensed source content, logs, traces, and recordings stay out of it.
 
