@@ -1,6 +1,6 @@
 # factory-droid-workflows
 
-Policy, documentation, and prompt templates for Jason Holt Digital (JHD) software-delivery automation across 13 repositories. It also holds the reusable Droid review workflow.
+Policy, documentation, and prompt templates for Jason Holt Digital (JHD) software-delivery automation across 13 repositories.
 
 This repository is public. It holds policy, credential names, and procedures only. Secret values, private issue text, licensed source content, logs, traces, and recordings stay out of it.
 
@@ -17,7 +17,6 @@ This repository is public. It holds policy, credential names, and procedures onl
 | `.github/workflows/factory-review.yml`, `factory-mentions.yml`, `factory-ci-steward.yml` | This repository's copies of the review, mention, and CI Steward workflows that each JHD repository receives. |
 | `.github/workflows/factory-triage.yml`, `droid-wiki-refresh.yml` | New-issue classification without implementation, and the official default-branch wiki refresh with a rolling reviewable PR. |
 | `.github/workflows/validate.yml` | Runs the policy lint and tests as the `Automation configuration` workflow. |
-| `.github/workflows/droid-review-reusable.yml` | Existing reusable review workflow. It stays in place until its replacement is proven. |
 
 ## States
 
