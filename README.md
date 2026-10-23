@@ -17,7 +17,6 @@ This repository is public. It holds policy, credential names, and procedures onl
 | `.github/workflows/factory-review.yml`, `factory-mentions.yml`, `factory-ci-steward.yml` | This repository's copies of the review, mention, and CI Steward workflows that each JHD repository receives. |
 | `.github/workflows/factory-triage.yml`, `droid-wiki-refresh.yml` | New-issue classification without implementation, and the official default-branch wiki refresh with a rolling reviewable PR. |
 | `.github/workflows/validate.yml` | Runs the policy lint and tests as the `Automation configuration` workflow. |
-| `.github/workflows/droid-review-reusable.yml` | Existing reusable review workflow. It stays in place until its replacement is proven. |
 
 ## States
 
