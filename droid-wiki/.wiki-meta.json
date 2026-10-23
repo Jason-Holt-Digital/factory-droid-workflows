@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-10-23T10:30:22Z",
+  "commitHash": "e5535c9fbba95ae786366f4b531fc5e36c466bfe",
+  "branch": "main",
+  "pageCount": 26,
+  "topLevelSections": [
+    "overview",
+    "by-the-numbers",
+    "lore",
+    "how-to-contribute",
+    "features",
+    "tooling",
+    "deployment",
+    "security",
+    "reference"
+  ],
+  "pageOrder": [
+    "overview/index.md",
+    "overview/architecture.md",
+    "overview/getting-started.md",
+    "overview/glossary.md",
+    "by-the-numbers.md",
+    "lore.md",
+    "how-to-contribute/index.md",
+    "how-to-contribute/development-workflow.md",
+    "how-to-contribute/testing.md",
+    "how-to-contribute/debugging.md",
+    "how-to-contribute/patterns-and-conventions.md",
+    "features/index.md",
+    "features/code-review.md",
+    "features/pr-commands.md",
+    "features/issue-triage.md",
+    "features/ci-steward.md",
+    "features/wiki-refresh.md",
+    "features/recurring-automations.md",
+    "tooling/index.md",
+    "tooling/policy-validation.md",
+    "deployment.md",
+    "security.md",
+    "reference/index.md",
+    "reference/configuration.md",
+    "reference/data-models.md",
+    "reference/dependencies.md"
+  ],
+  "warnings": [
+    "Phase 3.5 requires a QA skill. No .factory/skills/qa/config.yaml exists. Run /install-qa to set one up, then re-run wiki generation for screenshots.",
+    "Phase 3.5 skipped: neither agent-browser nor tuistory is available.",
+    "Optional uv, Ruff, and ty checks were not run because those commands were unavailable on PATH."
+  ],
+  "videoOverview": {
+    "status": "failed",
+    "warnings": [
+      "FFmpeg and FFprobe are not installed and HyperFrames is unavailable, so no video could be rendered.",
+      "No local Kokoro, Piper, or eSpeak narration engine was available; no remote TTS service was used."
+    ]
+  }
+}
