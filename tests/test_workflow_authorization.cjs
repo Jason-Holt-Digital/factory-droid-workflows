@@ -575,9 +575,9 @@ test('review: a successful review labels the PR', () => {
   assert.doesNotMatch(last, /^        if:/m);
 });
 
-test('wiki: runs monthly or by hand, not on push', () => {
+test('wiki: runs only by hand', () => {
   const wiki = readFileSync(join(__dirname, '../.github/workflows/droid-wiki-refresh.yml'), 'utf8');
-  assert.match(wiki, /^  schedule:\n    - cron: '17 6 1 \* \*'/m);
+  assert.doesNotMatch(wiki, /^  schedule:/m);
   assert.match(wiki, /^  workflow_dispatch:$/m);
   assert.doesNotMatch(wiki, /^  push:/m);
 });

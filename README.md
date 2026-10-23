@@ -30,7 +30,7 @@ Checks that were not run are reported as `NOT_RUN` with a reason.
 
 Ticket-to-PR and recurring source Intake are **deferred**, not scheduled implementation work. Their retained registrations stay paused and cannot perform their former tasks.
 
-Review, PR commands, Triage and CI Steward are opt-in. The official wiki workflow runs monthly (06:17 UTC on the 1st) once its setup PR merges, and can be started by hand from the Actions tab.
+Review, PR commands, Triage and CI Steward are opt-in. The official wiki workflow runs only when started by hand from the Actions tab.
 
 Live status is in the issue titled `JHD automation status` in the private `Jason-Holt-Digital/jhd-skills` repository.
 
