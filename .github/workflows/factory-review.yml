@@ -3,8 +3,10 @@
 # One automatic review per PR. A successful review adds the droid-reviewed
 # label, and every later event on a labelled PR is skipped. Until then a push
 # cancels the review in progress and starts it again on the new head, so the
-# reviewed code is the code that gets the label. To review again, comment
-# `@droid review` (factory-mentions.yml), or remove the label.
+# reviewed code is the code that gets the label. A CI Steward fix pushed by
+# factory-droid[bot] is still reviewed on a labelled PR. To review again,
+# comment `@droid review` (factory-mentions.yml, which needs
+# JHD_FACTORY_MENTIONS_ENABLED), or remove the label.
 name: Factory Review
 
 on:
@@ -22,7 +24,8 @@ jobs:
   authorize:
     if: >-
       vars.JHD_FACTORY_REVIEW_ENABLED == 'true' &&
-      !contains(github.event.pull_request.labels.*.name, 'droid-reviewed') &&
+      (!contains(github.event.pull_request.labels.*.name, 'droid-reviewed') ||
+       github.event.sender.login == 'factory-droid[bot]') &&
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       (github.event.sender.type == 'User' ||
@@ -51,7 +54,8 @@ jobs:
               core.info('Skipping a fork, draft, or closed PR.');
               return;
             }
-            if (pr.labels?.some(label => label.name === 'droid-reviewed')) {
+            if (context.actor !== 'factory-droid[bot]' &&
+                pr.labels?.some(label => label.name === 'droid-reviewed')) {
               core.info('This PR already has its Factory review. Comment `@droid review` to review it again.');
               return;
             }

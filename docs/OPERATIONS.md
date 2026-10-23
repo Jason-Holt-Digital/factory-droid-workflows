@@ -8,7 +8,7 @@ These frequencies are JHD choices for a low-volume organization, not Factory Rea
 
 | Automation | Starts when | Required outcome |
 |---|---|---|
-| Code Review | Eligible PR, until its first review succeeds | One review with a security pass per PR. A push during the review restarts it on the new head. The `droid-reviewed` label marks it done, and labelled PRs are skipped. Comment `@droid review` for another one. |
+| Code Review | Eligible PR, until its first review succeeds | One review with a security pass per PR. A push during the review restarts it on the new head. The `droid-reviewed` label marks it done, and labelled PRs are skipped, except CI Steward fix pushes by `factory-droid[bot]`. Comment `@droid review` for another one; that needs `JHD_FACTORY_MENTIONS_ENABLED`. |
 | AutoWiki | Monthly, 06:17 UTC on the 1st, or a manual run | Refresh the Factory wiki and open or update one reviewable `factory/droid-wiki` PR containing generated pages and metadata. |
 | Issue Triage | New GitHub issue | One comment classifying it, suggesting related work and a human route. No implementation or ready label. |
 | CI Steward | An allowlisted deterministic CI workflow fails | Diagnose it; at most one retry and two fix commits, with ten invocations per PR. |

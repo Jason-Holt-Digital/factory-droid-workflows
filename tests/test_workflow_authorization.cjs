@@ -301,6 +301,19 @@ test('review: a PR labelled droid-reviewed is not reviewed again', async () => {
   assert.match(result.infos[0], /@droid review/);
 });
 
+test('review: a CI Steward fix push on a labelled PR is still reviewed', async () => {
+  const context = eventContext('review');
+  context.actor = 'factory-droid[bot]';
+  context.payload.sender = { login: context.actor, type: 'Bot' };
+  context.payload.pull_request.labels = [{ name: 'droid-reviewed' }];
+  assert.equal(jobCondition('review', context), true);
+  const pr = pullRequest();
+  pr.labels = [{ name: 'droid-reviewed' }];
+  const result = await authorize('review', { context, pr, triggeringActor: context.actor });
+  assert.equal(result.outputs.eligible, 'true');
+  assert.deepEqual(result.permissions, []);
+});
+
 test('review: other labels do not block the first review', async () => {
   const context = eventContext('review');
   context.payload.pull_request.labels = [{ name: 'enhancement' }];

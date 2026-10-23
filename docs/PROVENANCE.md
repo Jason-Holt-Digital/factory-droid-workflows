@@ -14,7 +14,7 @@ The review, mention, Steward and Triage wrappers reference commits, with version
 
 ## Corrections to the official templates
 
-- Review once per PR: a successful review adds the `droid-reviewed` label, and labelled PRs are skipped. Until then a push restarts the review on the new head. `@droid review` asks for another review.
+- Review once per PR: a successful review adds the `droid-reviewed` label, and labelled PRs are skipped, except CI Steward fix pushes by `factory-droid[bot]`. Until then a push restarts the review on the new head. `@droid review` asks for another review when mentions are enabled.
 - List trusted bots by name. Never use a wildcard.
 
 Review, mentions, Triage and CI Steward are opt-in through `JHD_FACTORY_REVIEW_ENABLED`, `JHD_FACTORY_MENTIONS_ENABLED`, `JHD_FACTORY_TRIAGE_ENABLED`, `JHD_FACTORY_STEWARD_ENABLED`, and `JHD_FACTORY_STEWARD_FIX_ENABLED`. AutoWiki replaces the official default-branch push trigger with a monthly schedule and a manual run; merging its setup PR is activation, not a gated dry run.
