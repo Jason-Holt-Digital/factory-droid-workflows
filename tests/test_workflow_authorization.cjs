@@ -570,9 +570,11 @@ test('wiki: generation runs only on the default branch', () => {
   assert.ok(job);
   const condition = job.match(/^    if: (.*)$/m);
   assert.ok(condition);
-  for (const [ref, expected] of [['main', true], ['feature', false]]) {
+  for (const [ref, type, expected] of [
+    ['main', 'branch', true], ['feature', 'branch', false], ['main', 'tag', false],
+  ]) {
     const value = vm.runInNewContext(condition[1].replaceAll('github.', 'github_.'), {
-      github_: { ref_name: ref, event: { repository: { default_branch: 'main' } } },
+      github_: { ref_name: ref, ref_type: type, event: { repository: { default_branch: 'main' } } },
     });
     assert.equal(value, expected);
   }
