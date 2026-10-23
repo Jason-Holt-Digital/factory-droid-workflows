@@ -56,7 +56,7 @@ All 13 repositories have gated review and human `@droid` PR-command wrappers. Th
 
 ### AutoWiki
 
-Use the current official `/install-wiki` template, including fixed repository-wide concurrency, full history, restoring `droid-wiki/` from `factory/droid-wiki`, and hidden metadata in the artifact. The generation job is read-only. Only the separate publish job receives write permissions and an optional `FACTORY_WIKI_PR_TOKEN`. Media is excluded from Git.
+Use the current official `/install-wiki` template, including fixed repository-wide concurrency, full history, restoring `droid-wiki/` from `factory/droid-wiki`, and hidden metadata in the artifact. The generation job has `contents: write` and a bot Git identity, because `/wiki` pushes the GitHub wiki itself; the separate publish job opens the pull request, with an optional `FACTORY_WIKI_PR_TOKEN`. Media is excluded from Git.
 
 Mythic's existing setup is PR #1921. It already contains these settings and is reused unchanged. The other twelve repositories receive the same template in their existing setup PRs. Do not open a duplicate Mythic wiki workflow.
 

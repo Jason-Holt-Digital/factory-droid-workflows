@@ -581,3 +581,13 @@ test('wiki: runs only by hand', () => {
   assert.match(wiki, /^  workflow_dispatch:$/m);
   assert.doesNotMatch(wiki, /^  push:/m);
 });
+
+test('wiki: the generation job can push the GitHub wiki', () => {
+  const wiki = readFileSync(join(__dirname, '../.github/workflows/droid-wiki-refresh.yml'), 'utf8');
+  const job = wiki.slice(wiki.indexOf('  wiki-refresh:'), wiki.indexOf('  wiki-publish:'));
+  assert.match(job, /^    permissions:\n      contents: write$/m);
+  const setup = job.indexOf('name: Set up Git for the GitHub wiki push');
+  assert.ok(setup !== -1 && setup < job.indexOf('name: Generate wiki'));
+  assert.match(job, /git config --global user\.email/);
+  assert.match(job, /git config --global http\.https:\/\/github\.com\/\.extraheader/);
+});
