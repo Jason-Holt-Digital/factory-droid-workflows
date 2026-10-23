@@ -2,14 +2,14 @@
 
 ## Agreed operating model
 
-Code Review, issue Triage, and bounded CI repair run on events, not polling schedules. AutoWiki runs monthly, or by hand from the Actions tab. Weekly Health and Digest and monthly Readiness run as local native Factory automations on the Mac mini. Ticket-to-PR and recurring source Intake are deferred.
+Code Review, issue Triage, and bounded CI repair run on events, not polling schedules. AutoWiki runs only when started by hand from the Actions tab. Weekly Health and Digest and monthly Readiness run as local native Factory automations on the Mac mini. Ticket-to-PR and recurring source Intake are deferred.
 
 These frequencies are JHD choices for a low-volume organization, not Factory Readiness requirements.
 
 | Automation | Starts when | Required outcome |
 |---|---|---|
 | Code Review | Eligible PR without the `droid-reviewed` label | One review with a security pass per PR; the label marks it done. CI Steward fix pushes are still reviewed. Comment `@droid review` for another one (needs `JHD_FACTORY_MENTIONS_ENABLED`). |
-| AutoWiki | Monthly, 06:17 UTC on the 1st, or a manual run | Refresh the Factory wiki and open or update one reviewable `factory/droid-wiki` PR containing generated pages and metadata. |
+| AutoWiki | A manual run from the Actions tab | Refresh the Factory wiki and open or update one reviewable `factory/droid-wiki` PR containing generated pages and metadata. |
 | Issue Triage | New GitHub issue | One comment classifying it, suggesting related work and a human route. No implementation or ready label. |
 | CI Steward | An allowlisted deterministic CI workflow fails | Diagnose it; at most one retry and two fix commits, with ten invocations per PR. |
 | Health | Weekly | At most one justified maintenance PR across the organization. No work if no useful fix exists. |
@@ -60,7 +60,7 @@ Use the current official `/install-wiki` template, including fixed repository-wi
 
 Mythic's existing setup is PR #1921. It already contains these settings and is reused unchanged. The other twelve repositories receive the same template in their existing setup PRs. Do not open a duplicate Mythic wiki workflow.
 
-**Merging a wiki setup workflow activates its monthly schedule.** It has no JHD enable variable. Wait for restored Factory quota and approval of that activation before merging those PRs. This preparation does not merge any PR.
+**The wiki workflow runs only when started by hand** from the Actions tab; each run is a paid Droid session. To have Factory also publish to the GitHub wiki, create the first wiki page by hand at `https://github.com/{owner}/{repo}/wiki` once; Factory cannot push to an uninitialized wiki.
 
 `FACTORY_API_KEY` already exists at organization scope for all repositories. No `FACTORY_WIKI_PR_TOKEN` was present in organization or repository secret metadata at preparation time. Do not reuse or widen `RELEASE_PLEASE_TOKEN`.
 
@@ -106,7 +106,7 @@ The other seven receive no CI Steward workflow. Steward does not watch AI, relea
 | Issue Triage | `JHD_FACTORY_TRIAGE_ENABLED` unset or `false` | `true`, one pilot first |
 | CI Steward diagnosis | `JHD_FACTORY_STEWARD_ENABLED` unset or `false` | `true` |
 | CI Steward fixes | `JHD_FACTORY_STEWARD_FIX_ENABLED` unset or `false` | `true` after repair proof |
-| AutoWiki | Setup PR unmerged, or workflow disabled | Merge activates the monthly schedule and manual runs |
+| AutoWiki | Setup PR unmerged, or workflow disabled | Merge allows manual runs |
 
 Review, mentions and Steward use the unchanged official `Factory-AI/droid-action` v10 at the pinned commit in `docs/PROVENANCE.md`. Factory App access and credential availability are required but do not prove hosted execution. Keep all repository `automerge` values false.
 
