@@ -520,10 +520,15 @@ async function runLabelStep(labelExists, liveHead = 'head-sha') {
       issues: {
         async getLabel(params) {
           calls.push(['get', params.name]);
-          if (!labelExists) throw Object.assign(new Error('Not Found'), { status: 404 });
+          if (labelExists !== true) throw Object.assign(new Error('Not Found'), { status: 404 });
           return { data: {} };
         },
-        async createLabel(params) { calls.push(['create', params.name]); },
+        async createLabel(params) {
+          calls.push(['create', params.name]);
+          if (labelExists === 'race') {
+            throw Object.assign(new Error('already_exists'), { status: 422 });
+          }
+        },
         async addLabels(params) { calls.push(['add', params.issue_number, params.labels]); },
       },
     },
@@ -542,6 +547,12 @@ test('review: creates the droid-reviewed label when the repository lacks it', as
   ]);
   assert.deepEqual(await runLabelStep(true), [
     ['get', 'droid-reviewed'], ['add', 42, ['droid-reviewed']],
+  ]);
+});
+
+test('review: labels the PR when another review created the label first', async () => {
+  assert.deepEqual(await runLabelStep('race'), [
+    ['get', 'droid-reviewed'], ['create', 'droid-reviewed'], ['add', 42, ['droid-reviewed']],
   ]);
 });
 
