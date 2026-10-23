@@ -60,7 +60,7 @@ function eventContext(kind) {
 async function authorize(kind, options = {}) {
   const context = options.context || eventContext(kind);
   const pr = options.pr || pullRequest();
-  const result = { outputs: {}, failures: [], infos: [], permissions: [], pulls: [] };
+  const result = { outputs: {}, failures: [], infos: [], permissions: [], jobs: [], pulls: [] };
   const github = {
     rest: {
       repos: {
@@ -83,6 +83,21 @@ async function authorize(kind, options = {}) {
           return { data: pr };
         },
       },
+      actions: {
+        async listWorkflowRuns(params) {
+          assert.equal(params.workflow_id, 'factory-review.yml');
+          assert.equal(params.head_sha, pr.head.sha);
+          assert.equal(params.event, 'pull_request');
+          assert.equal(params.status, 'success');
+          return { data: { workflow_runs: options.runs || [] } };
+        },
+        listJobsForWorkflowRun() { throw new Error('Use github.paginate for jobs'); },
+      },
+    },
+    async paginate(method, { run_id }) {
+      assert.equal(method, github.rest.actions.listJobsForWorkflowRun);
+      result.jobs.push(run_id);
+      return options.jobs?.[run_id] || [];
     },
   };
   const core = {
@@ -106,10 +121,7 @@ function evaluate(expression, context, vars = {}, scope = {}) {
     changes: {}, comment: { user: {} }, review: { user: {} },
     ...context.payload,
   };
-  const script = expression
-    .replaceAll('pull_requests[0].number', 'pull_requests?.[0]?.number')
-    .replaceAll('labels.*.name', 'labels?.map(label => label.name)');
-  return vm.runInNewContext(script, {
+  return vm.runInNewContext(expression.replaceAll('pull_requests[0].number', 'pull_requests?.[0]?.number').replaceAll('labels.*.name', 'labels?.map(label => label.name)'), {
     github: {
       event, actor: context.actor, event_name: context.eventName,
       repository: 'jhd/project', run_id: context.runId,
@@ -155,15 +167,16 @@ for (const kind of ['mentions', 'review', 'ci-steward']) {
     }
   }
 
-  for (const state of kind === 'review' ? ['fork', 'closed', 'draft'] : []) {
+  for (const state of kind === 'review' ? ['fork', 'closed', 'draft', 'stale'] : []) {
     test(`${kind}: rejects ${state} PR`, async () => {
       const pr = pullRequest();
       if (state === 'fork') pr.head.repo.full_name = 'outside/project';
       if (state === 'closed') pr.state = 'closed';
       if (state === 'draft') pr.draft = true;
+      if (state === 'stale') pr.head.sha = 'newer-head';
       const result = await authorize(kind, { pr });
       denied(result);
-      assert.match(result.infos[0], /fork, draft, or closed/);
+      assert.match(result.infos[0], /fork|superseded/);
     });
   }
 
@@ -280,82 +293,119 @@ for (const body of ['@droid', '@droid review', '@droid fill', '@droid security',
   });
 }
 
-test('review: reviews the live head when the PR moved since the event', async () => {
+function reviewRun(id = 99) {
   const pr = pullRequest();
-  pr.head.sha = 'newer-head';
-  const result = await authorize('review', { pr });
-  assert.equal(result.outputs.eligible, 'true');
-  assert.equal(result.outputs.head_sha, 'newer-head');
-});
+  return { id, head_sha: pr.head.sha, pull_requests: [{ number: pr.number, base: pr.base }] };
+}
 
-test('review: a PR labelled droid-reviewed is not reviewed again', async () => {
-  const context = eventContext('review');
-  context.payload.pull_request.labels = [{ name: 'droid-reviewed' }];
-  assert.equal(jobCondition('review', context), false);
-  const pr = pullRequest();
-  pr.labels = [{ name: 'droid-reviewed' }];
-  const result = await authorize('review', { pr });
+for (const mismatch of ['other PR', 'base ref', 'base SHA', 'no associations', 'missing associations', 'missing base']) {
+  test(`review: previous success with ${mismatch} does not suppress review`, async () => {
+    const run = reviewRun();
+    if (mismatch === 'other PR') run.pull_requests[0].number = 41;
+    if (mismatch === 'base ref') run.pull_requests[0].base.ref = 'release';
+    if (mismatch === 'base SHA') run.pull_requests[0].base.sha = 'old-base';
+    if (mismatch === 'no associations') run.pull_requests = [];
+    if (mismatch === 'missing associations') delete run.pull_requests;
+    if (mismatch === 'missing base') delete run.pull_requests[0].base;
+    const result = await authorize('review', {
+      runs: [run], jobs: { 99: [{ name: 'Advisory review and security', conclusion: 'success' }] },
+    });
+    assert.equal(result.outputs.eligible, 'true');
+    assert.deepEqual(result.jobs, []);
+  });
+}
+
+test('review: same PR/head/base successful review deduplicates', async () => {
+  const result = await authorize('review', {
+    runs: [reviewRun()],
+    jobs: { 99: [{ name: 'Advisory review and security', conclusion: 'success' }] },
+  });
   denied(result);
   assert.deepEqual(result.failures, []);
-  assert.match(result.infos[0], /already has its Factory review/);
-  assert.match(result.infos[0], /@droid review/);
+  assert.deepEqual(result.jobs, [99]);
+  assert.match(result.infos[0], /already completed/);
 });
 
-test('review: a CI Steward fix push on a labelled PR is still reviewed', async () => {
-  const context = eventContext('review');
-  context.actor = 'factory-droid[bot]';
-  context.payload.sender = { login: context.actor, type: 'Bot' };
-  context.payload.pull_request.labels = [{ name: 'droid-reviewed' }];
-  assert.equal(jobCondition('review', context), true);
-  const pr = pullRequest();
-  pr.labels = [{ name: 'droid-reviewed' }];
-  const result = await authorize('review', { context, pr, triggeringActor: context.actor });
-  assert.equal(result.outputs.eligible, 'true');
-  assert.deepEqual(result.permissions, []);
+for (const jobs of [
+  [], [{ name: 'authorize', conclusion: 'success' }],
+  [{ name: 'Advisory review and security', conclusion: 'skipped' }],
+  [{ name: 'Advisory review and security', conclusion: 'failure' }],
+]) {
+  test(`review: no completed successful review job (${JSON.stringify(jobs)}) remains eligible`, async () => {
+    const result = await authorize('review', { runs: [reviewRun()], jobs: { 99: jobs } });
+    assert.equal(result.outputs.eligible, 'true');
+    assert.deepEqual(result.jobs, [99]);
+  });
+}
+
+test('review: skips current run and continues past unrelated candidates', async () => {
+  const unrelated = reviewRun(98);
+  unrelated.pull_requests[0].number = 41;
+  const result = await authorize('review', {
+    runs: [reviewRun(100), unrelated, reviewRun()],
+    jobs: { 99: [{ name: 'Advisory review and security', conclusion: 'success' }] },
+  });
+  denied(result);
+  assert.deepEqual(result.jobs, [99]);
 });
 
-test('review: other labels do not block the first review', async () => {
-  const context = eventContext('review');
-  context.payload.pull_request.labels = [{ name: 'enhancement' }];
-  assert.equal(jobCondition('review', context), true);
-  const pr = pullRequest();
-  pr.labels = [{ name: 'enhancement' }];
-  assert.equal((await authorize('review', { pr })).outputs.eligible, 'true');
-});
-
-test('review: a base retarget before the run still reviews the PR', async () => {
+test('review: rejects a superseded base ref', async () => {
   const pr = pullRequest();
   pr.base.ref = 'different-base';
-  assert.equal((await authorize('review', { pr })).outputs.eligible, 'true');
+  denied(await authorize('review', { pr }));
 });
 
-test('review: pushes restart an unlabelled review; edits do not start one', () => {
-  const types = workflows.review.match(/^    types: \[(.*)\]$/m);
-  assert.ok(types);
-  const actions = types[1].split(',').map(action => action.trim());
-  assert.deepEqual(actions, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft', 'closed']);
+test('review: base SHA drift remains eligible and deduplicates against the live base', async () => {
+  const pr = pullRequest();
+  pr.base.sha = 'new-base';
+  const oldRun = reviewRun();
+  const liveRun = reviewRun(98);
+  liveRun.pull_requests[0].base.sha = pr.base.sha;
+  const jobs = {
+    99: [{ name: 'Advisory review and security', conclusion: 'success' }],
+    98: [{ name: 'Advisory review and security', conclusion: 'success' }],
+  };
+  const eligible = await authorize('review', { pr, runs: [oldRun], jobs });
+  assert.equal(eligible.outputs.eligible, 'true');
+  assert.deepEqual(eligible.jobs, []);
+  const completed = await authorize('review', { pr, runs: [oldRun, liveRun], jobs });
+  denied(completed);
+  assert.deepEqual(completed.jobs, [98]);
+  assert.match(completed.infos[0], /already completed/);
 });
 
-test('review: lifecycle events share one cancellation group per PR', () => {
+function reviewGroup(context) {
   const match = workflows.review.match(/^  group: (.*)\n/m);
   assert.ok(match);
-  const group = context => match[1].replace(/\$\{\{(.*?)\}\}/g, (_, expression) => evaluate(expression, context));
-  const context = eventContext('review');
-  const first = group(context);
-  for (const action of ['synchronize', 'reopened', 'ready_for_review', 'converted_to_draft', 'closed']) {
-    context.payload.action = action;
-    context.runId += 1;
-    assert.equal(group(context), first);
+  return match[1].replace(/\$\{\{(.*?)\}\}/g, (_, expression) => evaluate(expression, context));
+}
+
+test('review: title/body edits neither authorize nor cancel an active review', async () => {
+  const current = eventContext('review');
+  for (const changes of [{ title: { from: 'old' } }, { body: { from: 'old' } }]) {
+    const edit = eventContext('review');
+    edit.payload.action = 'edited';
+    edit.payload.changes = changes;
+    edit.runId = 101;
+    assert.equal(jobCondition('review', edit), false);
+    denied(await authorize('review', { context: edit }));
+    assert.notEqual(reviewGroup(edit), reviewGroup(current));
+    assert.notEqual(reviewGroup(edit), reviewGroup({ ...edit, runId: 102 }));
   }
 });
 
-test('review: labels the PR only after the review step', () => {
-  const review = jobBlock('review', 'review');
-  const reviewStep = review.indexOf('Run native deep review and security');
-  const labelStep = review.indexOf('Mark the PR as reviewed');
-  assert.ok(reviewStep > 0 && labelStep > reviewStep);
-  assert.match(review.slice(labelStep), /labels: \[name\]/);
-  assert.match(review, /ref: \$\{\{ needs\.authorize\.outputs\.head_sha \}\}/);
+test('review: base retargets authorize and share head/lifecycle cancellation group', async () => {
+  const context = eventContext('review');
+  const group = reviewGroup(context);
+  context.payload.action = 'edited';
+  context.payload.changes = { base: { ref: { from: 'release' }, sha: { from: 'old-base' } } };
+  assert.equal(jobCondition('review', context), true);
+  assert.equal((await authorize('review', { context })).outputs.eligible, 'true');
+  assert.equal(reviewGroup(context), group);
+  for (const action of ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft', 'closed']) {
+    context.payload.action = action;
+    assert.equal(reviewGroup(context), group);
+  }
 });
 
 for (const kind of ['review', 'ci-steward']) {
@@ -506,83 +556,28 @@ for (const [kind, job] of [['mentions', 'mentions'], ['ci-steward', 'steward']])
   });
 }
 
-async function runLabelStep(labelExists, liveHead = 'head-sha') {
-  const review = jobBlock('review', 'review');
-  const step = review.slice(review.indexOf('Mark the PR as reviewed'));
-  const match = step.match(/          script: \|\n((?:^            .*\n|^\n)+)/m);
-  assert.ok(match, 'Missing label step script');
-  const calls = [];
-  const github = {
-    rest: {
-      pulls: {
-        async get() { return { data: { head: { sha: liveHead } } }; },
-      },
-      issues: {
-        async getLabel(params) {
-          calls.push(['get', params.name]);
-          const created = labelExists === 'race' && calls.some(call => call[0] === 'create');
-          if (labelExists !== true && !created) {
-            throw Object.assign(new Error('Not Found'), { status: 404 });
-          }
-          return { data: {} };
-        },
-        async createLabel(params) {
-          calls.push(['create', params.name]);
-          if (labelExists === 'race' || labelExists === 'invalid') {
-            throw Object.assign(new Error('already_exists'), { status: 422 });
-          }
-        },
-        async addLabels(params) { calls.push(['add', params.issue_number, params.labels]); },
-      },
-    },
-  };
+test('review: a labelled PR is skipped unless CI Steward pushed', () => {
   const context = eventContext('review');
-  const core = { info: message => calls.push(['info', message]) };
-  await vm.runInNewContext(`(async () => {\n${match[1].replace(/^            /gm, '')}\n})()`, {
-    github, context, core, process: { env: { REVIEWED_SHA: 'head-sha' } },
-  });
-  return JSON.parse(JSON.stringify(calls));
-}
-
-test('review: creates the droid-reviewed label when the repository lacks it', async () => {
-  assert.deepEqual(await runLabelStep(false), [
-    ['get', 'droid-reviewed'], ['create', 'droid-reviewed'], ['add', 42, ['droid-reviewed']],
-  ]);
-  assert.deepEqual(await runLabelStep(true), [
-    ['get', 'droid-reviewed'], ['add', 42, ['droid-reviewed']],
-  ]);
+  context.payload.pull_request.labels = [{ name: 'droid-reviewed' }];
+  assert.equal(jobCondition('review', context), false);
+  context.payload.sender = { login: 'factory-droid[bot]', type: 'Bot' };
+  assert.equal(jobCondition('review', context), true);
+  context.payload.pull_request.labels = [{ name: 'enhancement' }];
+  context.payload.sender = { login: 'writer', type: 'User' };
+  assert.equal(jobCondition('review', context), true);
 });
 
-test('review: labels the PR when another review created the label first', async () => {
-  assert.deepEqual(await runLabelStep('race'), [
-    ['get', 'droid-reviewed'], ['create', 'droid-reviewed'], ['get', 'droid-reviewed'],
-    ['add', 42, ['droid-reviewed']],
-  ]);
+test('review: a successful review labels the PR', () => {
+  const steps = jobSteps('review', 'review');
+  const last = steps[steps.length - 1];
+  assert.match(last, /name: Mark the PR as reviewed/);
+  assert.match(last, /labels: \['droid-reviewed'\]/);
+  assert.doesNotMatch(last, /^        if:/m);
 });
 
-test('review: fails when label creation is rejected and the label is still missing', async () => {
-  await assert.rejects(runLabelStep('invalid'), { status: 404 });
-});
-
-test('wiki: generation runs only on the default branch', () => {
+test('wiki: runs monthly or by hand, not on push', () => {
   const wiki = readFileSync(join(__dirname, '../.github/workflows/droid-wiki-refresh.yml'), 'utf8');
-  const job = wiki.split('\n  wiki-refresh:\n')[1];
-  assert.ok(job);
-  const condition = job.match(/^    if: (.*)$/m);
-  assert.ok(condition);
-  for (const [ref, type, expected] of [
-    ['main', 'branch', true], ['feature', 'branch', false], ['main', 'tag', false],
-  ]) {
-    const value = vm.runInNewContext(condition[1].replaceAll('github.', 'github_.'), {
-      github_: { ref_name: ref, ref_type: type, event: { repository: { default_branch: 'main' } } },
-    });
-    assert.equal(value, expected);
-  }
-});
-
-test('review: does not label a PR whose head moved during the review', async () => {
-  const calls = await runLabelStep(true, 'newer-head');
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], 'info');
-  assert.match(calls[0][1], /moved during the review/);
+  assert.match(wiki, /^  schedule:\n    - cron: '17 6 1 \* \*'/m);
+  assert.match(wiki, /^  workflow_dispatch:$/m);
+  assert.doesNotMatch(wiki, /^  push:/m);
 });

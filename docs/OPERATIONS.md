@@ -2,13 +2,13 @@
 
 ## Agreed operating model
 
-Code Review, issue Triage, and bounded CI repair run on events, not polling schedules. AutoWiki runs monthly as a GitHub Actions schedule, or by hand from the Actions tab. Weekly Health and Digest and monthly Readiness run as local native Factory automations on the Mac mini. Ticket-to-PR and recurring source Intake are deferred.
+Code Review, issue Triage, and bounded CI repair run on events, not polling schedules. AutoWiki runs monthly, or by hand from the Actions tab. Weekly Health and Digest and monthly Readiness run as local native Factory automations on the Mac mini. Ticket-to-PR and recurring source Intake are deferred.
 
 These frequencies are JHD choices for a low-volume organization, not Factory Readiness requirements.
 
 | Automation | Starts when | Required outcome |
 |---|---|---|
-| Code Review | Eligible PR, until its first review succeeds | One review with a security pass per PR. A push during the review restarts it on the new head. The `droid-reviewed` label marks it done, and labelled PRs are skipped, except CI Steward fix pushes by `factory-droid[bot]`. Comment `@droid review` for another one; that needs `JHD_FACTORY_MENTIONS_ENABLED`. |
+| Code Review | Eligible PR without the `droid-reviewed` label | One review with a security pass per PR; the label marks it done. CI Steward fix pushes are still reviewed. Comment `@droid review` for another one (needs `JHD_FACTORY_MENTIONS_ENABLED`). |
 | AutoWiki | Monthly, 06:17 UTC on the 1st, or a manual run | Refresh the Factory wiki and open or update one reviewable `factory/droid-wiki` PR containing generated pages and metadata. |
 | Issue Triage | New GitHub issue | One comment classifying it, suggesting related work and a human route. No implementation or ready label. |
 | CI Steward | An allowlisted deterministic CI workflow fails | Diagnose it; at most one retry and two fix commits, with ten invocations per PR. |
@@ -60,7 +60,7 @@ Use the current official `/install-wiki` template, including fixed repository-wi
 
 Mythic's existing setup is PR #1921. It already contains these settings and is reused unchanged. The other twelve repositories receive the same template in their existing setup PRs. Do not open a duplicate Mythic wiki workflow.
 
-**Merging a wiki setup workflow activates its monthly schedule** (06:17 UTC on the 1st). It has no JHD enable variable. For an immediate refresh, run it by hand from the Actions tab on the default branch; a run started from any other branch generates nothing. GitHub disables scheduled workflows in a public repository after 60 days without repository activity; re-enable the workflow from the Actions tab when that happens.
+**Merging a wiki setup workflow activates its monthly schedule.** It has no JHD enable variable. Wait for restored Factory quota and approval of that activation before merging those PRs. This preparation does not merge any PR.
 
 `FACTORY_API_KEY` already exists at organization scope for all repositories. No `FACTORY_WIKI_PR_TOKEN` was present in organization or repository secret metadata at preparation time. Do not reuse or widen `RELEASE_PLEASE_TOKEN`.
 
@@ -120,7 +120,7 @@ Verify available Factory quota before a paid execution. Do not activate on a gue
 2. Confirm the affected repository can actually start GitHub Actions jobs after the CI budget change. A zero-step billing failure proves nothing about Factory or Sentry credentials.
 3. Canary Code Review on one same-repository PR/head. Confirm a real posted review, then cut over that repository's legacy responder.
 4. Canary one issue classification. Expect one bounded comment, no implementation or label changes, and no second comment on rerun.
-5. Approve AutoWiki activation and its publishing credential/permission path. Merge one wiki setup, start one manual run on the default branch, and observe one rolling wiki PR, then an incremental update with preserved metadata.
+5. Approve AutoWiki activation and its publishing credential/permission path. Merge one wiki setup, start one manual run, and observe one rolling wiki PR, then an incremental update with preserved metadata.
 6. Canary CI Steward with one eligible nonproduction failure. Verify diagnosis before separately enabling bounded repairs.
 7. Canary Digest against the known private status issue, Health against one named repository, and Readiness against one named repository. Keep their schedules paused during each manual canary.
 8. Resume only the three recurring automations whose outcomes passed and whose activation is approved. Leave Ticket-to-PR and Intake deferred.
