@@ -14,7 +14,7 @@ The review, mention, Steward and Triage wrappers reference commits, with version
 
 ## Corrections to the official templates
 
-- Review once per PR: trigger on `opened`, `reopened` and `ready_for_review`, not `synchronize`, and add a `droid-reviewed` label after a successful review. `@droid review` asks for another review.
+- Review once per PR: a successful review adds the `droid-reviewed` label, and labelled PRs are skipped. Until then a push restarts the review on the new head. `@droid review` asks for another review.
 - List trusted bots by name. Never use a wildcard.
 
 Review, mentions, Triage and CI Steward are opt-in through `JHD_FACTORY_REVIEW_ENABLED`, `JHD_FACTORY_MENTIONS_ENABLED`, `JHD_FACTORY_TRIAGE_ENABLED`, `JHD_FACTORY_STEWARD_ENABLED`, and `JHD_FACTORY_STEWARD_FIX_ENABLED`. AutoWiki replaces the official default-branch push trigger with a monthly schedule and a manual run; merging its setup PR is activation, not a gated dry run.
@@ -29,7 +29,7 @@ The workflows use the official upstream `Factory-AI/droid-action` v10 at the pin
 - Issue Triage: 13 classification-only workflows using the official pinned `Factory-AI/droid-action/base-action`, with restricted local tools and a separate validated comment job. This is JHD configuration, not the scheduled Slack Triage package.
 - AutoWiki: twelve official-template workflows added to existing setup PRs; Mythic's existing PR #1921 already has the current template and is reused unchanged. All restore the rolling wiki, preserve hidden metadata, exclude media, and separate read-only generation from write-permission publication.
 - CI Steward: six repositories with existing deterministic CI, watching only those workflows. The list is in `docs/OPERATIONS.md`.
-- Review checks out the live PR head and rejects changed base branch refs. A PR with the `droid-reviewed` label is not reviewed again. Converting the PR to a draft or closing it cancels a review in progress.
+- Review checks out the live PR head and labels the PR only if that head has not moved. A PR with the `droid-reviewed` label is not reviewed again. A push, converting the PR to a draft, or closing it cancels a review in progress.
 - Opt-in jobs on the setup PRs are skipped. Hosted Factory execution remains unverified.
 
 ## Added repositories

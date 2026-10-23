@@ -30,7 +30,7 @@ function eventContext(kind) {
   const payload = {
     repository: { default_branch: 'main' },
     sender: { login: 'writer', type: 'User' },
-    action: kind === 'review' ? 'opened' : 'created',
+    action: kind === 'review' ? 'synchronize' : 'created',
     pull_request: pr,
   };
   if (kind === 'mentions') {
@@ -163,7 +163,7 @@ for (const kind of ['mentions', 'review', 'ci-steward']) {
       if (state === 'draft') pr.draft = true;
       const result = await authorize(kind, { pr });
       denied(result);
-      assert.match(result.infos[0], /fork|draft|closed/);
+      assert.match(result.infos[0], /fork, draft, or closed/);
     });
   }
 
@@ -310,17 +310,17 @@ test('review: other labels do not block the first review', async () => {
   assert.equal((await authorize('review', { pr })).outputs.eligible, 'true');
 });
 
-test('review: rejects a superseded base ref', async () => {
+test('review: a base retarget before the run still reviews the PR', async () => {
   const pr = pullRequest();
   pr.base.ref = 'different-base';
-  denied(await authorize('review', { pr }));
+  assert.equal((await authorize('review', { pr })).outputs.eligible, 'true');
 });
 
-test('review: pushes and edits do not start a review', () => {
+test('review: pushes restart an unlabelled review; edits do not start one', () => {
   const types = workflows.review.match(/^    types: \[(.*)\]$/m);
   assert.ok(types);
   const actions = types[1].split(',').map(action => action.trim());
-  assert.deepEqual(actions, ['opened', 'reopened', 'ready_for_review', 'converted_to_draft', 'closed']);
+  assert.deepEqual(actions, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft', 'closed']);
 });
 
 test('review: lifecycle events share one cancellation group per PR', () => {
@@ -329,7 +329,7 @@ test('review: lifecycle events share one cancellation group per PR', () => {
   const group = context => match[1].replace(/\$\{\{(.*?)\}\}/g, (_, expression) => evaluate(expression, context));
   const context = eventContext('review');
   const first = group(context);
-  for (const action of ['reopened', 'ready_for_review', 'converted_to_draft', 'closed']) {
+  for (const action of ['synchronize', 'reopened', 'ready_for_review', 'converted_to_draft', 'closed']) {
     context.payload.action = action;
     context.runId += 1;
     assert.equal(group(context), first);
@@ -493,7 +493,7 @@ for (const [kind, job] of [['mentions', 'mentions'], ['ci-steward', 'steward']])
   });
 }
 
-async function runLabelStep(labelExists) {
+async function runLabelStep(labelExists, liveHead = 'head-sha') {
   const review = jobBlock('review', 'review');
   const step = review.slice(review.indexOf('Mark the PR as reviewed'));
   const match = step.match(/          script: \|\n((?:^            .*\n|^\n)+)/m);
@@ -501,6 +501,9 @@ async function runLabelStep(labelExists) {
   const calls = [];
   const github = {
     rest: {
+      pulls: {
+        async get() { return { data: { head: { sha: liveHead } } }; },
+      },
       issues: {
         async getLabel(params) {
           calls.push(['get', params.name]);
@@ -513,7 +516,10 @@ async function runLabelStep(labelExists) {
     },
   };
   const context = eventContext('review');
-  await vm.runInNewContext(`(async () => {\n${match[1].replace(/^            /gm, '')}\n})()`, { github, context });
+  const core = { info: message => calls.push(['info', message]) };
+  await vm.runInNewContext(`(async () => {\n${match[1].replace(/^            /gm, '')}\n})()`, {
+    github, context, core, process: { env: { REVIEWED_SHA: 'head-sha' } },
+  });
   return JSON.parse(JSON.stringify(calls));
 }
 
@@ -538,4 +544,11 @@ test('wiki: generation runs only on the default branch', () => {
     });
     assert.equal(value, expected);
   }
+});
+
+test('review: does not label a PR whose head moved during the review', async () => {
+  const calls = await runLabelStep(true, 'newer-head');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'info');
+  assert.match(calls[0][1], /moved during the review/);
 });
