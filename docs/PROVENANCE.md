@@ -28,7 +28,7 @@ The workflows use the official upstream `Factory-AI/droid-action` v10 at the pin
 
 - Review with a security pass, and `@droid` mentions: all 13 repositories (26 workflow files).
 - Issue Triage: 13 classification-only workflows using the official pinned `Factory-AI/droid-action/base-action`, with restricted local tools and a separate validated comment job. This is JHD configuration, not the scheduled Slack Triage package.
-- AutoWiki: twelve official-template workflows added to existing setup PRs; Mythic's existing PR #1921 already has the current template and is reused unchanged. All restore the rolling wiki, preserve hidden metadata, exclude media, and separate read-only generation from write-permission publication.
+- AutoWiki: twelve official-template workflows added to existing setup PRs; Mythic's existing PR #1921 already has the current template and is reused unchanged. All restore the rolling wiki, preserve hidden metadata, exclude media, and run publication in a separate job. Generation later gained `contents: write` so `/wiki` can push the GitHub wiki (approved by Jason, 2026-10-23).
 - CI Steward: six repositories with existing deterministic CI, watching only those workflows. The list is in `docs/OPERATIONS.md`.
 - Review rejects stale PR head SHAs and changed base branch refs. A base branch that advances to a new commit does not suppress review. Completed-review deduplication uses the live PR head SHA, base ref, and base SHA. The workflow cancels superseded runs and skips a matching completed review.
 - Opt-in jobs on the setup PRs are skipped. Hosted Factory execution remains unverified.
