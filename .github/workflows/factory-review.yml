@@ -6,7 +6,8 @@
 # reviewed code is the code that gets the label. A CI Steward fix pushed by
 # factory-droid[bot] is still reviewed on a labelled PR. To review again,
 # comment `@droid review` (factory-mentions.yml, which needs
-# JHD_FACTORY_MENTIONS_ENABLED), or remove the label.
+# JHD_FACTORY_MENTIONS_ENABLED), or remove the label so the next push gets
+# reviewed.
 name: Factory Review
 
 on:
