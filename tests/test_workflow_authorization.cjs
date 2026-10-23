@@ -121,7 +121,7 @@ function evaluate(expression, context, vars = {}, scope = {}) {
     changes: {}, comment: { user: {} }, review: { user: {} },
     ...context.payload,
   };
-  return vm.runInNewContext(expression.replaceAll('pull_requests[0].number', 'pull_requests?.[0]?.number'), {
+  return vm.runInNewContext(expression.replaceAll('pull_requests[0].number', 'pull_requests?.[0]?.number').replaceAll('labels.*.name', 'labels?.map(label => label.name)'), {
     github: {
       event, actor: context.actor, event_name: context.eventName,
       repository: 'jhd/project', run_id: context.runId,
@@ -555,3 +555,29 @@ for (const [kind, job] of [['mentions', 'mentions'], ['ci-steward', 'steward']])
     }
   });
 }
+
+test('review: a labelled PR is skipped unless CI Steward pushed', () => {
+  const context = eventContext('review');
+  context.payload.pull_request.labels = [{ name: 'droid-reviewed' }];
+  assert.equal(jobCondition('review', context), false);
+  context.payload.sender = { login: 'factory-droid[bot]', type: 'Bot' };
+  assert.equal(jobCondition('review', context), true);
+  context.payload.pull_request.labels = [{ name: 'enhancement' }];
+  context.payload.sender = { login: 'writer', type: 'User' };
+  assert.equal(jobCondition('review', context), true);
+});
+
+test('review: a successful review labels the PR', () => {
+  const steps = jobSteps('review', 'review');
+  const last = steps[steps.length - 1];
+  assert.match(last, /name: Mark the PR as reviewed/);
+  assert.match(last, /labels: \['droid-reviewed'\]/);
+  assert.doesNotMatch(last, /^        if:/m);
+});
+
+test('wiki: runs monthly or by hand, not on push', () => {
+  const wiki = readFileSync(join(__dirname, '../.github/workflows/droid-wiki-refresh.yml'), 'utf8');
+  assert.match(wiki, /^  schedule:\n    - cron: '17 6 1 \* \*'/m);
+  assert.match(wiki, /^  workflow_dispatch:$/m);
+  assert.doesNotMatch(wiki, /^  push:/m);
+});
