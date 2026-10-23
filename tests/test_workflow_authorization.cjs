@@ -589,5 +589,6 @@ test('wiki: the generation job can push the GitHub wiki', () => {
   const setup = job.indexOf('name: Set up Git for the GitHub wiki push');
   assert.ok(setup !== -1 && setup < job.indexOf('name: Generate wiki'));
   assert.match(job, /git config --global user\.email/);
-  assert.match(job, /git config --global http\.https:\/\/github\.com\/\.extraheader/);
+  assert.match(job, /git config --global credential\.helper store/);
+  assert.doesNotMatch(job, /--global http\.https:\/\/github\.com\/\.extraheader/);
 });
