@@ -341,7 +341,7 @@ test('review: labels the PR only after the review step', () => {
   const reviewStep = review.indexOf('Run native deep review and security');
   const labelStep = review.indexOf('Mark the PR as reviewed');
   assert.ok(reviewStep > 0 && labelStep > reviewStep);
-  assert.match(review.slice(labelStep), /labels: \['droid-reviewed'\]/);
+  assert.match(review.slice(labelStep), /labels: \[name\]/);
   assert.match(review, /ref: \$\{\{ needs\.authorize\.outputs\.head_sha \}\}/);
 });
 
@@ -492,3 +492,50 @@ for (const [kind, job] of [['mentions', 'mentions'], ['ci-steward', 'steward']])
     }
   });
 }
+
+async function runLabelStep(labelExists) {
+  const review = jobBlock('review', 'review');
+  const step = review.slice(review.indexOf('Mark the PR as reviewed'));
+  const match = step.match(/          script: \|\n((?:^            .*\n|^\n)+)/m);
+  assert.ok(match, 'Missing label step script');
+  const calls = [];
+  const github = {
+    rest: {
+      issues: {
+        async getLabel(params) {
+          calls.push(['get', params.name]);
+          if (!labelExists) throw Object.assign(new Error('Not Found'), { status: 404 });
+          return { data: {} };
+        },
+        async createLabel(params) { calls.push(['create', params.name]); },
+        async addLabels(params) { calls.push(['add', params.issue_number, params.labels]); },
+      },
+    },
+  };
+  const context = eventContext('review');
+  await vm.runInNewContext(`(async () => {\n${match[1].replace(/^            /gm, '')}\n})()`, { github, context });
+  return JSON.parse(JSON.stringify(calls));
+}
+
+test('review: creates the droid-reviewed label when the repository lacks it', async () => {
+  assert.deepEqual(await runLabelStep(false), [
+    ['get', 'droid-reviewed'], ['create', 'droid-reviewed'], ['add', 42, ['droid-reviewed']],
+  ]);
+  assert.deepEqual(await runLabelStep(true), [
+    ['get', 'droid-reviewed'], ['add', 42, ['droid-reviewed']],
+  ]);
+});
+
+test('wiki: generation runs only on the default branch', () => {
+  const wiki = readFileSync(join(__dirname, '../.github/workflows/droid-wiki-refresh.yml'), 'utf8');
+  const job = wiki.split('\n  wiki-refresh:\n')[1];
+  assert.ok(job);
+  const condition = job.match(/^    if: (.*)$/m);
+  assert.ok(condition);
+  for (const [ref, expected] of [['main', true], ['feature', false]]) {
+    const value = vm.runInNewContext(condition[1].replaceAll('github.', 'github_.'), {
+      github_: { ref_name: ref, event: { repository: { default_branch: 'main' } } },
+    });
+    assert.equal(value, expected);
+  }
+});
