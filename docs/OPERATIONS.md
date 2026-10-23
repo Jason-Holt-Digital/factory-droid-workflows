@@ -2,14 +2,14 @@
 
 ## Agreed operating model
 
-Code Review, AutoWiki, issue Triage, and bounded CI repair run on events, not polling schedules. Weekly Health and Digest and monthly Readiness run as local native Factory automations on the Mac mini. Ticket-to-PR and recurring source Intake are deferred.
+Code Review, issue Triage, and bounded CI repair run on events, not polling schedules. AutoWiki runs monthly as a GitHub Actions schedule, or by hand from the Actions tab. Weekly Health and Digest and monthly Readiness run as local native Factory automations on the Mac mini. Ticket-to-PR and recurring source Intake are deferred.
 
 These frequencies are JHD choices for a low-volume organization, not Factory Readiness requirements.
 
 | Automation | Starts when | Required outcome |
 |---|---|---|
-| Code Review | New eligible PR head | One current-head review with a security pass; no duplicate review for the same PR/head/base identity. |
-| AutoWiki | Push to the default branch | Refresh the Factory wiki and open or update one reviewable `factory/droid-wiki` PR containing generated pages and metadata. |
+| Code Review | Eligible PR opened ready for review, or a draft marked ready | One review with a security pass per PR. The `droid-reviewed` label marks it done; later pushes do not start another review. Comment `@droid review` for another one. |
+| AutoWiki | Monthly, 06:17 UTC on the 1st, or a manual run | Refresh the Factory wiki and open or update one reviewable `factory/droid-wiki` PR containing generated pages and metadata. |
 | Issue Triage | New GitHub issue | One comment classifying it, suggesting related work and a human route. No implementation or ready label. |
 | CI Steward | An allowlisted deterministic CI workflow fails | Diagnose it; at most one retry and two fix commits, with ten invocations per PR. |
 | Health | Weekly | At most one justified maintenance PR across the organization. No work if no useful fix exists. |
