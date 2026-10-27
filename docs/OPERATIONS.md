@@ -8,7 +8,7 @@ These frequencies are JHD choices for a low-volume organization, not Factory Rea
 
 | Automation | Starts when | Required outcome |
 |---|---|---|
-| Code Review | Eligible PR without the `droid-reviewed` label | One review with a security pass per PR; the label marks it done. CI Steward fix pushes are still reviewed. Comment `@droid review` for another one (needs `JHD_FACTORY_MENTIONS_ENABLED`). |
+| Code Review | Eligible PR without the `droid-reviewed` label | One review with a security pass per PR; the label marks it done. CI Steward fix pushes are still reviewed. Comment `@droid review` for another one (needs `JHD_FACTORY_MENTIONS_ENABLED`). Runs on Claude Sonnet 5.5 through `ANTHROPIC_API_KEY`. |
 | AutoWiki | A manual run from the Actions tab | Refresh the Factory wiki and open or update one reviewable `factory/droid-wiki` PR containing generated pages and metadata. |
 | Issue Triage | New GitHub issue | One comment classifying it, suggesting related work and a human route. No implementation or ready label. |
 | CI Steward | An allowlisted deterministic CI workflow fails | Diagnose it; at most one retry and two fix commits, with ten invocations per PR. |

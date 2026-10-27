@@ -17,6 +17,7 @@ The review, mention, Steward and Triage wrappers reference commits, with version
 - Add `synchronize` to the pull request triggers, so each new head is reviewed until the first review succeeds.
 - Review once per PR: a successful review adds the `droid-reviewed` label, and labelled PRs are skipped except CI Steward fix pushes.
 - List trusted bots by name. Never use a wildcard.
+- Run Code Review on `claude-sonnet-5-5` through the `ANTHROPIC_API_KEY` secret. A workflow step writes the custom model to `~/.factory/settings.json`, because the action's `settings` input writes `~/.factory/droid/settings.json`, which Droid does not read for custom models (still true in v12). If the model fails to load, the action reruns on the organization default and posts a `MODEL_FALLBACK_NOTE` in the tracking comment.
 
 Review, mentions, Triage and CI Steward are opt-in through `JHD_FACTORY_REVIEW_ENABLED`, `JHD_FACTORY_MENTIONS_ENABLED`, `JHD_FACTORY_TRIAGE_ENABLED`, `JHD_FACTORY_STEWARD_ENABLED`, and `JHD_FACTORY_STEWARD_FIX_ENABLED`. AutoWiki replaces the official default-branch push trigger with manual runs only; merging its setup PR is activation, not a gated dry run.
 
