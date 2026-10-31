@@ -9,6 +9,7 @@ This repository is public. It holds policy, credential names, and procedures onl
 | Path | Purpose |
 |---|---|
 | `config/jhd.json` | Repositories, trust, source ownership, approved cadences, deferred work, CI Steward limits, and human release gates. |
+| `config/pstack/` | Shared pstack role map, personal droids, and cross-machine installer. |
 | `scripts/validate.py`, `tests/` | Policy lint. Fails when release automation, wildcard bots, or unproven automatic merges appear in the config. |
 | `automations/` | Weekly Health and Digest, monthly assessment-only Readiness, and no-op prompts for deferred Worker and source Intake. `COMMON.md` holds recurring-run rules. |
 | `docs/OPERATIONS.md` | Install, pause, resume, canary, and recovery steps. |

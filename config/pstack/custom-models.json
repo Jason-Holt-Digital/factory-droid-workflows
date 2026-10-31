@@ -1,0 +1,422 @@
+[
+  {
+    "baseModelId": "claude-opus-5-5",
+    "displayName": "Anthropic API credit: Opus 5.5",
+    "enableThinking": true,
+    "id": "custom:anthropic-api:opus-5-5",
+    "maxOutputTokens": 128000,
+    "model": "claude-opus-5-5",
+    "noImageSupport": false,
+    "provider": "anthropic"
+  },
+  {
+    "baseModelId": "claude-sonnet-5-5",
+    "displayName": "Anthropic API credit: Sonnet 5.5",
+    "enableThinking": true,
+    "id": "custom:anthropic-api:sonnet-5-5",
+    "maxOutputTokens": 128000,
+    "model": "claude-sonnet-5-5",
+    "noImageSupport": false,
+    "provider": "anthropic"
+  },
+  {
+    "baseModelId": "gemini-4-argon",
+    "displayName": "Gemini API credit: Gemini 4 Argon",
+    "id": "custom:gemini-api:gemini-4-argon",
+    "maxOutputTokens": 65536,
+    "model": "gemini-4-argon",
+    "noImageSupport": false,
+    "provider": "generic-chat-completion-api"
+  },
+  {
+    "baseModelId": "gemini-3.8-flash",
+    "displayName": "Gemini API credit: Gemini 3.8 Flash",
+    "id": "custom:gemini-api:gemini-3.8-flash",
+    "maxOutputTokens": 65536,
+    "model": "gemini-3.8-flash",
+    "noImageSupport": false,
+    "provider": "generic-chat-completion-api"
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: Opus 5.5",
+    "enableThinking": true,
+    "id": "custom:droidproxy:opus-5-5",
+    "maxOutputTokens": 128000,
+    "model": "claude-opus-5-5",
+    "noImageSupport": false,
+    "provider": "anthropic",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: Sonnet 5.5",
+    "enableThinking": true,
+    "id": "custom:droidproxy:sonnet-5-5",
+    "maxOutputTokens": 128000,
+    "model": "claude-sonnet-5-5",
+    "noImageSupport": false,
+    "provider": "anthropic",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: Haiku 5.5",
+    "enableThinking": true,
+    "id": "custom:droidproxy:haiku-5-5",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 128000,
+    "model": "claude-haiku-5-5",
+    "noImageSupport": false,
+    "provider": "anthropic",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: GPT 6 Astra",
+    "enableThinking": true,
+    "id": "custom:droidproxy:gpt-6-astra",
+    "maxContextLimit": 272000,
+    "maxOutputTokens": 128000,
+    "model": "gpt-6-astra",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: GPT 6.1 Sol",
+    "enableThinking": true,
+    "id": "custom:droidproxy:gpt-6.1-sol",
+    "maxContextLimit": 272000,
+    "maxOutputTokens": 128000,
+    "model": "gpt-6.1-sol",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: GPT 6.1 Terra",
+    "enableThinking": true,
+    "id": "custom:droidproxy:gpt-6.1-terra",
+    "maxContextLimit": 272000,
+    "maxOutputTokens": 128000,
+    "model": "gpt-6.1-terra",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: GPT 6 Luna",
+    "enableThinking": true,
+    "id": "custom:droidproxy:gpt-6-luna",
+    "maxContextLimit": 272000,
+    "maxOutputTokens": 128000,
+    "model": "gpt-6-luna",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "high",
+    "displayName": "DroidProxy: Antigravity: Gemini 3.8 Flash (High)",
+    "enableThinking": true,
+    "id": "custom:droidproxy:gemini-3.8-flash-high",
+    "maxOutputTokens": 65536,
+    "model": "gemini-3.8-flash-high",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "high",
+    "supportedReasoningEfforts": [
+      "high"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "high",
+    "displayName": "DroidProxy: Antigravity: Gemini 4 Argon",
+    "enableThinking": true,
+    "id": "custom:droidproxy:gemini-4-argon-high",
+    "maxOutputTokens": 65536,
+    "model": "gemini-4-argon-high",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "high",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "high",
+    "displayName": "DroidProxy: Antigravity: Claude Sonnet 5.5 (High)",
+    "enableThinking": true,
+    "id": "custom:droidproxy:ag-c55s-high",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 128000,
+    "model": "ag-c55s-high",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "high",
+    "supportedReasoningEfforts": [
+      "high"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "high",
+    "displayName": "DroidProxy: Antigravity: Claude Opus 5.5 (High)",
+    "enableThinking": true,
+    "id": "custom:droidproxy:ag-c55o-high",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 128000,
+    "model": "ag-c55o-high",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "high",
+    "supportedReasoningEfforts": [
+      "high"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: Grok 4.7",
+    "enableThinking": true,
+    "id": "custom:droidproxy:grok-4.7",
+    "maxContextLimit": 500000,
+    "maxOutputTokens": 128000,
+    "model": "grok-4.7",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "defaultReasoningEffort": "xhigh",
+    "displayName": "DroidProxy: Grok 4.7 Fast",
+    "enableThinking": true,
+    "id": "custom:droidproxy:grok-4.7-build-fast",
+    "maxContextLimit": 500000,
+    "maxOutputTokens": 128000,
+    "model": "grok-4.7-build-fast",
+    "noImageSupport": false,
+    "provider": "openai",
+    "reasoningEffort": "xhigh",
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "model": "glm-5.3-flash",
+    "displayName": "[Go] GLM-5.3-Flash",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:glm-5.3-flash",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 131072,
+    "noImageSupport": false,
+    "baseModelId": "glm-5.3-flash"
+  },
+  {
+    "model": "gemini-4-argon",
+    "displayName": "[Go] Gemini 4 Argon",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:gemini-4-argon",
+    "maxContextLimit": 1048576,
+    "maxOutputTokens": 65536,
+    "noImageSupport": false,
+    "baseModelId": "gemini-4-argon"
+  },
+  {
+    "model": "kimi-k3.1-pro",
+    "displayName": "[Go] Kimi K3.1 Pro",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:kimi-k3.1-pro",
+    "maxContextLimit": 1048576,
+    "maxOutputTokens": 131072,
+    "noImageSupport": false,
+    "supportedReasoningEfforts": [
+      "low",
+      "high",
+      "max"
+    ],
+    "defaultReasoningEffort": "high",
+    "reasoningEffort": "high"
+  },
+  {
+    "model": "muse-spark-1.3-contributor",
+    "displayName": "[Go] Muse Spark 1.3 Contributor",
+    "provider": "openai",
+    "id": "custom:opencode-go:muse-spark-1.3-contributor",
+    "maxContextLimit": 1048576,
+    "maxOutputTokens": 131072,
+    "noImageSupport": false,
+    "baseModelId": "muse-spark-1.3"
+  },
+  {
+    "model": "claude-haiku-5-5",
+    "displayName": "[Go] Claude Haiku 5.5",
+    "provider": "anthropic",
+    "id": "custom:opencode-go:claude-haiku-5-5",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 128000,
+    "noImageSupport": false,
+    "enableThinking": true,
+    "baseModelId": "claude-haiku-5-5",
+    "useInRouter": true
+  },
+  {
+    "model": "grok-4.7",
+    "displayName": "[Go] Grok 4.7",
+    "provider": "openai",
+    "id": "custom:opencode-go:grok-4.7",
+    "maxContextLimit": 500000,
+    "maxOutputTokens": 500000,
+    "noImageSupport": false,
+    "baseModelId": "grok-4.7"
+  },
+  {
+    "model": "deepseek-v4.1-flash",
+    "displayName": "[Go] DeepSeek V4.1 Flash",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:deepseek-v4.1-flash",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 384000,
+    "noImageSupport": false,
+    "baseModelId": "deepseek-v4.1-flash"
+  },
+  {
+    "model": "glm-5.3",
+    "displayName": "[Go] GLM-5.3",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:glm-5.3",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 131072,
+    "noImageSupport": true,
+    "baseModelId": "glm-5.3"
+  },
+  {
+    "model": "mimo-v2.6-pro",
+    "displayName": "[Go] MiMo-V2.6-Pro",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:mimo-v2.6-pro",
+    "maxContextLimit": 1048576,
+    "maxOutputTokens": 131072,
+    "noImageSupport": false,
+    "reasoningEffort": "high"
+  },
+  {
+    "model": "minimax-m3.1-flash",
+    "displayName": "[Go] MiniMax M3.1 Flash",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:minimax-m3.1-flash",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 512000,
+    "noImageSupport": false,
+    "baseModelId": "minimax-m3.1-flash"
+  },
+  {
+    "model": "step-5-preview",
+    "displayName": "[Go] Step 5 Preview",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:step-5-preview",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 65536,
+    "noImageSupport": false,
+    "supportedReasoningEfforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "defaultReasoningEffort": "high",
+    "reasoningEffort": "high"
+  },
+  {
+    "model": "gpt-6-luna",
+    "displayName": "[Go] GPT-6 Luna",
+    "provider": "openai",
+    "id": "custom:opencode-go:gpt-6-luna",
+    "maxContextLimit": 1050000,
+    "maxOutputTokens": 128000,
+    "noImageSupport": false,
+    "baseModelId": "gpt-6-luna"
+  },
+  {
+    "model": "mimo-v2.6-flash",
+    "displayName": "[Go] MiMo-V2.6-Flash",
+    "provider": "generic-chat-completion-api",
+    "id": "custom:opencode-go:mimo-v2.6-flash",
+    "maxContextLimit": 1048576,
+    "maxOutputTokens": 131072,
+    "noImageSupport": false,
+    "reasoningEffort": "high"
+  },
+  {
+    "model": "minimax-m3",
+    "displayName": "[Go] MiniMax-M3",
+    "provider": "anthropic",
+    "id": "custom:opencode-go:minimax-m3",
+    "maxContextLimit": 1000000,
+    "maxOutputTokens": 131072,
+    "noImageSupport": false,
+    "enableThinking": true,
+    "baseModelId": "minimax-m3"
+  }
+]
